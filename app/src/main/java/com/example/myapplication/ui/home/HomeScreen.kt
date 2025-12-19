@@ -50,19 +50,22 @@ enum class BottomTab {
 @Composable
 fun HomeScreen(
     onLogout: () -> Unit,
-    onVocabularyClick: () -> Unit
+    onVocabularyClick: () -> Unit,
+    onSettingsClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val userPreferences = remember { UserPreferences(context) }
 
     HomeScreenContent(
-        username = userPreferences.getUsername() ?: "User",
+        username = userPreferences.getNickname()?.takeIf { it.isNotEmpty() } ?: userPreferences.getUsername() ?: "User",
         email = userPreferences.getEmail() ?: "No Email",
+        avatarIndex = userPreferences.getAvatarIndex(),
         onLogout = {
             userPreferences.clearUserSession()
             onLogout()
         },
-        onVocabularyClick = onVocabularyClick
+        onVocabularyClick = onVocabularyClick,
+        onSettingsClick = onSettingsClick
     )
 }
 
@@ -84,12 +87,18 @@ val AccentGradient = Brush.linearGradient(
 fun HomeScreenContent(
     username: String,
     email: String,
+    avatarIndex: Int = 0,
     onLogout: () -> Unit,
-    onVocabularyClick: () -> Unit
+    onVocabularyClick: () -> Unit,
+    onSettingsClick: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
 
-    val backgroundColor = Color(0xFFF8F9FE)
+    // Sử dụng MaterialTheme colors cho dark mode support
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     Scaffold(
         containerColor = backgroundColor,
@@ -112,12 +121,12 @@ fun HomeScreenContent(
                                 "English Learning",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 18.sp,
-                                color = Color(0xFF1a1a2e)
+                                color = textColor
                             )
                             Text(
                                 "Học mỗi ngày, tiến bộ mỗi ngày",
                                 fontSize = 12.sp,
-                                color = Color.Gray
+                                color = secondaryTextColor
                             )
                         }
                     }
@@ -127,12 +136,26 @@ fun HomeScreenContent(
                 ),
                 actions = {
                     IconButton(
+                        onClick = onSettingsClick,
+                        modifier = Modifier
+                            .padding(4.dp)
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(surfaceColor)
+                    ) {
+                        Icon(
+                            Icons.Outlined.Settings,
+                            contentDescription = "Settings",
+                            tint = Color(0xFF667eea)
+                        )
+                    }
+                    IconButton(
                         onClick = {},
                         modifier = Modifier
                             .padding(4.dp)
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(Color.White)
+                            .background(surfaceColor)
                     ) {
                         Icon(
                             Icons.Outlined.Notifications,
@@ -146,7 +169,7 @@ fun HomeScreenContent(
                             .padding(4.dp)
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(Color.White)
+                            .background(surfaceColor)
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.ExitToApp,
@@ -163,7 +186,7 @@ fun HomeScreenContent(
            ========================= */
         bottomBar = {
             NavigationBar(
-                containerColor = Color.White,
+                containerColor = surfaceColor,
                 tonalElevation = 8.dp,
                 modifier = Modifier
                     .shadow(elevation = 16.dp, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
@@ -262,7 +285,7 @@ fun HomeScreenContent(
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    UserProfileCard(username, email)
+                    UserProfileCard(username, email, avatarIndex)
                     Spacer(Modifier.height(20.dp))
 
                     DailyGoalSection()
@@ -298,11 +321,11 @@ fun HomeScreenContent(
                             "Chat với người lạ",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1a1a2e)
+                            color = textColor
                         )
                         Text(
                             "Tính năng đang phát triển",
-                            color = Color.Gray
+                            color = secondaryTextColor
                         )
                     }
                 }
@@ -330,11 +353,11 @@ fun HomeScreenContent(
                             "Chat với AI",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1a1a2e)
+                            color = textColor
                         )
                         Text(
                             "Tính năng đang phát triển",
-                            color = Color.Gray
+                            color = secondaryTextColor
                         )
                     }
                 }
@@ -347,7 +370,21 @@ fun HomeScreenContent(
    SECTIONS
    ========================= */
 @Composable
-fun UserProfileCard(username: String, email: String) {
+fun UserProfileCard(username: String, email: String, avatarIndex: Int = 0) {
+    // Avatar options matching SettingsScreen
+    val avatarIcons = listOf(
+        Icons.Default.Person to Color(0xFF667eea),
+        Icons.Default.Face to Color(0xFF11998e),
+        Icons.Default.SentimentSatisfied to Color(0xFFf5576c),
+        Icons.Default.School to Color(0xFFFF9800),
+        Icons.Default.Star to Color(0xFFFFD700),
+        Icons.Default.EmojiEmotions to Color(0xFF9C27B0),
+        Icons.Default.Pets to Color(0xFF4CAF50),
+        Icons.Default.SportsEsports to Color(0xFF2196F3),
+    )
+
+    val currentAvatar = avatarIcons.getOrElse(avatarIndex) { avatarIcons[0] }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -372,25 +409,20 @@ fun UserProfileCard(username: String, email: String) {
                     modifier = Modifier
                         .size(60.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.2f)),
+                        .background(currentAvatar.second),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = username.firstOrNull()?.uppercase() ?: "U",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp
+                    Icon(
+                        currentAvatar.first,
+                        contentDescription = "Avatar",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
                     )
                 }
 
                 Spacer(Modifier.width(16.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Xin chào! 👋",
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 14.sp
-                    )
                     Text(
                         username,
                         color = Color.White,
@@ -447,6 +479,10 @@ fun UserProfileCard(username: String, email: String) {
 
 @Composable
 fun DailyGoalSection() {
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -457,7 +493,7 @@ fun DailyGoalSection() {
                 spotColor = Color(0xFF11998e).copy(alpha = 0.2f)
             ),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = surfaceColor)
     ) {
         Column(Modifier.padding(20.dp)) {
             Row(
@@ -486,11 +522,11 @@ fun DailyGoalSection() {
                             "Mục tiêu hôm nay",
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
-                            color = Color(0xFF1a1a2e)
+                            color = textColor
                         )
                         Text(
                             "5/10 từ vựng",
-                            color = Color.Gray,
+                            color = secondaryTextColor,
                             fontSize = 12.sp
                         )
                     }
@@ -512,7 +548,7 @@ fun DailyGoalSection() {
                     .fillMaxWidth()
                     .height(12.dp)
                     .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0xFFE8F5E9))
+                    .background(Color(0xFF11998e).copy(alpha = 0.2f))
             ) {
                 Box(
                     modifier = Modifier
@@ -529,7 +565,7 @@ fun DailyGoalSection() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Còn 5 từ nữa!", color = Color.Gray, fontSize = 12.sp)
+                Text("Còn 5 từ nữa!", color = secondaryTextColor, fontSize = 12.sp)
                 Text("🎯 Cố lên!", color = Color(0xFF11998e), fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
         }
@@ -538,6 +574,8 @@ fun DailyGoalSection() {
 
 @Composable
 fun LearningFeaturesSection(onVocabularyClick: () -> Unit) {
+    val textColor = MaterialTheme.colorScheme.onBackground
+
     Column(Modifier.padding(horizontal = 16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -548,7 +586,7 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit) {
                 "Bắt đầu học",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
-                color = Color(0xFF1a1a2e)
+                color = textColor
             )
             TextButton(onClick = {}) {
                 Text("Xem tất cả", color = Color(0xFF667eea))
@@ -650,7 +688,7 @@ fun ModernFeatureCard(
                 onClick?.invoke()
             },
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Decorative circle in background
@@ -688,12 +726,12 @@ fun ModernFeatureCard(
                         title,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
-                        color = Color(0xFF1a1a2e)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         description,
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -703,12 +741,14 @@ fun ModernFeatureCard(
 
 @Composable
 fun StatisticsSection() {
+    val textColor = MaterialTheme.colorScheme.onBackground
+
     Column(Modifier.padding(horizontal = 16.dp)) {
         Text(
             "Thống kê của bạn",
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
-            color = Color(0xFF1a1a2e)
+            color = textColor
         )
         Spacer(Modifier.height(12.dp))
 
@@ -748,6 +788,10 @@ fun ModernStatCard(
     label: String,
     color: Color
 ) {
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+
     Card(
         modifier = modifier
             .shadow(
@@ -756,7 +800,7 @@ fun ModernStatCard(
                 spotColor = color.copy(alpha = 0.2f)
             ),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = surfaceColor)
     ) {
         Column(
             modifier = Modifier
@@ -783,12 +827,12 @@ fun ModernStatCard(
                 value,
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
-                color = Color(0xFF1a1a2e)
+                color = textColor
             )
             Text(
                 label,
                 fontSize = 11.sp,
-                color = Color.Gray
+                color = secondaryTextColor
             )
         }
     }
@@ -801,8 +845,10 @@ fun PreviewHome() {
         HomeScreenContent(
             username = "Nguyen Van A",
             email = "test@gmail.com",
+            avatarIndex = 0,
             onLogout = {},
-            onVocabularyClick = {}
+            onVocabularyClick = {},
+            onSettingsClick = {}
         )
     }
 }
