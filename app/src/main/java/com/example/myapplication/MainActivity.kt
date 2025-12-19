@@ -15,6 +15,7 @@ import com.example.myapplication.data.UserPreferences
 import com.example.myapplication.ui.auth.LoginScreen
 import com.example.myapplication.ui.auth.RegisterScreen
 import com.example.myapplication.ui.home.HomeScreen
+import com.example.myapplication.ui.settings.SettingsScreen
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.ui.vocabulary.DictionaryScreen
 
@@ -23,8 +24,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
-                MainApp()
+            val context = LocalContext.current
+            val userPreferences = remember { UserPreferences(context) }
+            var isDarkMode by remember { mutableStateOf(userPreferences.isDarkMode()) }
+
+            MyApplicationTheme(darkTheme = isDarkMode) {
+                MainApp(
+                    isDarkMode = isDarkMode,
+                    onDarkModeChanged = { isDarkMode = it }
+                )
             }
         }
     }
@@ -37,14 +45,18 @@ enum class Screen {
     LOGIN,
     REGISTER,
     HOME,
-    DICTIONARY
+    DICTIONARY,
+    SETTINGS
 }
 
 /* =========================
    MAIN APP
    ========================= */
 @Composable
-fun MainApp() {
+fun MainApp(
+    isDarkMode: Boolean = false,
+    onDarkModeChanged: (Boolean) -> Unit = {}
+) {
     val context = LocalContext.current
     val userPreferences = remember { UserPreferences(context) }
 
@@ -81,6 +93,9 @@ fun MainApp() {
                         },
                         onVocabularyClick = {
                             currentScreen = Screen.DICTIONARY
+                        },
+                        onSettingsClick = {
+                            currentScreen = Screen.SETTINGS
                         }
                     )
                 }
@@ -90,6 +105,15 @@ fun MainApp() {
                         onBack = {
                             currentScreen = Screen.HOME
                         }
+                    )
+                }
+
+                Screen.SETTINGS -> {
+                    SettingsScreen(
+                        onBack = {
+                            currentScreen = Screen.HOME
+                        },
+                        onDarkModeChanged = onDarkModeChanged
                     )
                 }
             }
