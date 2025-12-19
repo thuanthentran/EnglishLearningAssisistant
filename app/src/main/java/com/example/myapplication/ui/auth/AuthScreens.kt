@@ -22,8 +22,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.example.myapplication.data.DatabaseHelper
-import com.example.myapplication.data.UserPreferences
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.ui.theme.MyApplicationTheme
 
 // Validation helper functions
@@ -42,14 +41,12 @@ fun getPasswordErrorMessage(password: String): String? {
     return when {
         password.isEmpty() -> null
         password.length < 6 -> "Mật khẩu phải có ít nhất 6 ký tự"
-        !password.any { it.isUpperCase() } -> "Mật khẩu phải chứa ít nhất một chữ cái in hoa"
-        !password.any { it.isDigit() } -> "Mật khẩu phải chứa ít nhất một chữ số"
         else -> null
     }
 }
 
 fun isValidEmail(email: String): Boolean {
-    return email.isNotEmpty() && email.contains("@") && email.contains(".")
+    return email.isNotEmpty() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
 }
 
 fun getEmailErrorMessage(email: String): String? {
@@ -66,48 +63,62 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit
 ) {
     val context = LocalContext.current
-    val dbHelper = remember { DatabaseHelper(context) }
-    val userPreferences = remember { UserPreferences(context) }
+    val viewModel: AuthViewModel = viewModel(factory = AuthViewModel.Factory(context))
+    val loginState by viewModel.loginState.collectAsState()
 
-    var username by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var isRememberMeChecked by rememberSaveable { mutableStateOf(false) }
 
-    val isFormValid = username.isNotBlank() && password.isNotBlank()
+    val emailError = getEmailErrorMessage(email)
+    val isFormValid = email.isNotBlank() && password.isNotBlank() && emailError == null
 
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_WARNING")
+    // Handle login success
+    LaunchedEffect(loginState.isSuccess) {
+        if (loginState.isSuccess) {
+            Toast.makeText(context, "Đăng nhập thành công", Toast.LENGTH_SHORT).show()
+            viewModel.resetLoginState()
+            onLoginSuccess()
+        }
+    }
+
+    // Handle login error
+    LaunchedEffect(loginState.error) {
+        loginState.error?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.resetLoginState()
+        }
+    }
+
     LoginScreenContent(
-        username = username,
-        onUsernameChange = { username = it },
+        email = email,
+        onEmailChange = { email = it },
+        emailError = emailError,
         password = password,
         onPasswordChange = { password = it },
         isRememberMeChecked = isRememberMeChecked,
         onRememberMeChange = { isRememberMeChecked = it },
         onLoginClick = {
-            if (dbHelper.checkUser(username, password)) {
-                val email = dbHelper.getUserEmail(username) ?: ""
-                userPreferences.saveUserSession(username, email, isRememberMeChecked)
-                Toast.makeText(context, "Đăng nhập thành công", Toast.LENGTH_SHORT).show()
-                onLoginSuccess()
-            } else {
-                Toast.makeText(context, "Sai tên người dùng hoặc mật khẩu", Toast.LENGTH_SHORT).show()
-            }
+            viewModel.loginWithFirebase(email, password, isRememberMeChecked)
         },
-        isLoginEnabled = isFormValid,
+        isLoginEnabled = isFormValid && !loginState.isLoading,
+        isLoading = loginState.isLoading,
         onNavigateToRegister = onNavigateToRegister
     )
 }
 
 @Composable
 fun LoginScreenContent(
-    username: String,
-    onUsernameChange: (String) -> Unit,
+    email: String,
+    onEmailChange: (String) -> Unit,
+    emailError: String?,
     password: String,
     onPasswordChange: (String) -> Unit,
     isRememberMeChecked: Boolean,
     onRememberMeChange: (Boolean) -> Unit,
     onLoginClick: () -> Unit,
     isLoginEnabled: Boolean,
+    isLoading: Boolean = false,
     onNavigateToRegister: () -> Unit
 ) {
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
@@ -142,13 +153,24 @@ fun LoginScreenContent(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 OutlinedTextField(
-                    value = username,
-                    onValueChange = onUsernameChange,
-                    label = { Text("Tên người dùng") },
-                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Tên người dùng") },
+                    value = email,
+                    onValueChange = onEmailChange,
+                    label = { Text("Email") },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email") },
+                    isError = emailError != null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isLoading
                 )
+                if (emailError != null) {
+                    Text(
+                        text = emailError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.align(Alignment.Start).padding(start = 12.dp, top = 4.dp)
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -168,7 +190,8 @@ fun LoginScreenContent(
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isLoading
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -179,7 +202,8 @@ fun LoginScreenContent(
                 ) {
                     Checkbox(
                         checked = isRememberMeChecked,
-                        onCheckedChange = onRememberMeChange
+                        onCheckedChange = onRememberMeChange,
+                        enabled = !isLoading
                     )
                     Text(text = "Ghi nhớ đăng nhập", style = MaterialTheme.typography.bodyMedium)
                 }
@@ -198,12 +222,20 @@ fun LoginScreenContent(
                         disabledContainerColor = MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
-                    Text("Đăng Nhập", style = MaterialTheme.typography.labelLarge)
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Đăng Nhập", style = MaterialTheme.typography.labelLarge)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                TextButton(onClick = onNavigateToRegister) {
+                TextButton(onClick = onNavigateToRegister, enabled = !isLoading) {
                     Text(
                         "Chưa có tài khoản? Đăng ký ngay",
                         style = MaterialTheme.typography.bodyMedium,
@@ -220,14 +252,16 @@ fun LoginScreenContent(
 fun LoginScreenPreview() {
     MyApplicationTheme {
         LoginScreenContent(
-            username = "",
-            onUsernameChange = {},
+            email = "",
+            onEmailChange = {},
+            emailError = null,
             password = "",
             onPasswordChange = {},
             isRememberMeChecked = false,
             onRememberMeChange = {},
             onLoginClick = {},
             isLoginEnabled = false,
+            isLoading = false,
             onNavigateToRegister = {}
         )
     }
@@ -239,7 +273,8 @@ fun RegisterScreen(
     onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current
-    val dbHelper = remember { DatabaseHelper(context) }
+    val viewModel: AuthViewModel = viewModel(factory = AuthViewModel.Factory(context))
+    val registerState by viewModel.registerState.collectAsState()
 
     var username by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
@@ -248,24 +283,38 @@ fun RegisterScreen(
 
     val usernameError = getUsernameErrorMessage(username)
     val emailError = getEmailErrorMessage(email)
-    val emailExists = if (email.isNotEmpty() && isValidEmail(email)) dbHelper.isEmailExists(email) else false
-    val emailExistsError = if (emailExists) "Email này đã được sử dụng" else null
     val passwordError = getPasswordErrorMessage(password)
     val confirmPasswordError = if (password.isNotEmpty() && confirmPassword.isNotEmpty() && password != confirmPassword) {
         "Mật khẩu không khớp"
     } else null
 
     val isFormValid = username.isNotBlank() && email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank() &&
-            usernameError == null && emailError == null && emailExistsError == null && passwordError == null && confirmPasswordError == null
+            usernameError == null && emailError == null && passwordError == null && confirmPasswordError == null
 
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_WARNING")
+    // Handle register success
+    LaunchedEffect(registerState.isSuccess) {
+        if (registerState.isSuccess) {
+            Toast.makeText(context, "Đăng ký thành công! Vui lòng đăng nhập.", Toast.LENGTH_SHORT).show()
+            viewModel.resetRegisterState()
+            onRegisterSuccess()
+        }
+    }
+
+    // Handle register error
+    LaunchedEffect(registerState.error) {
+        registerState.error?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.resetRegisterState()
+        }
+    }
+
     RegisterScreenContent(
         username = username,
         onUsernameChange = { username = it },
         usernameError = usernameError,
         email = email,
         onEmailChange = { email = it },
-        emailError = emailError ?: emailExistsError,
+        emailError = emailError,
         password = password,
         onPasswordChange = { password = it },
         passwordError = passwordError,
@@ -273,18 +322,10 @@ fun RegisterScreen(
         onConfirmPasswordChange = { confirmPassword = it },
         confirmPasswordError = confirmPasswordError,
         onRegisterClick = {
-            if (!isFormValid) {
-                Toast.makeText(context, "Vui lòng kiểm tra lại thông tin đăng ký", Toast.LENGTH_SHORT).show()
-            } else {
-                if (dbHelper.registerUser(username, email, password)) {
-                    Toast.makeText(context, "Đăng ký thành công", Toast.LENGTH_SHORT).show()
-                    onRegisterSuccess()
-                } else {
-                    Toast.makeText(context, "Tên người dùng đã tồn tại", Toast.LENGTH_SHORT).show()
-                }
-            }
+            viewModel.registerWithFirebase(username, email, password)
         },
-        isRegisterEnabled = isFormValid,
+        isRegisterEnabled = isFormValid && !registerState.isLoading,
+        isLoading = registerState.isLoading,
         onNavigateToLogin = onNavigateToLogin
     )
 }
@@ -305,6 +346,7 @@ fun RegisterScreenContent(
     confirmPasswordError: String?,
     onRegisterClick: () -> Unit,
     isRegisterEnabled: Boolean,
+    isLoading: Boolean = false,
     onNavigateToLogin: () -> Unit
 ) {
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
@@ -347,7 +389,8 @@ fun RegisterScreenContent(
                     isError = emailError != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isLoading
                 )
                 if (emailError != null) {
                     Text(
@@ -367,7 +410,8 @@ fun RegisterScreenContent(
                     leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Tên người dùng") },
                     isError = usernameError != null,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isLoading
                 )
                 if (usernameError != null) {
                     Text(
@@ -397,7 +441,8 @@ fun RegisterScreenContent(
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isLoading
                 )
                 if (passwordError != null) {
                     Text(
@@ -427,7 +472,8 @@ fun RegisterScreenContent(
                     visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isLoading
                 )
                 if (confirmPasswordError != null) {
                     Text(
@@ -452,12 +498,20 @@ fun RegisterScreenContent(
                         disabledContainerColor = MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
-                    Text("Đăng Ký", style = MaterialTheme.typography.labelLarge)
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Đăng Ký", style = MaterialTheme.typography.labelLarge)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                TextButton(onClick = onNavigateToLogin) {
+                TextButton(onClick = onNavigateToLogin, enabled = !isLoading) {
                     Text(
                         "Đã có tài khoản? Đăng nhập",
                         style = MaterialTheme.typography.bodyMedium,
@@ -488,6 +542,7 @@ fun RegisterScreenPreview() {
             confirmPasswordError = null,
             onRegisterClick = {},
             isRegisterEnabled = false,
+            isLoading = false,
             onNavigateToLogin = {}
         )
     }

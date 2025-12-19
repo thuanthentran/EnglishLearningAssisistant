@@ -106,4 +106,77 @@ class DatabaseHelper(context: Context) :
         db.close()
         return email
     }
+
+    // Đổi mật khẩu - kiểm tra mật khẩu hiện tại và cập nhật mật khẩu mới
+    fun changePassword(username: String, currentPasswordRaw: String, newPasswordRaw: String): ChangePasswordResult {
+        // Kiểm tra mật khẩu hiện tại
+        if (!checkUser(username, currentPasswordRaw)) {
+            return ChangePasswordResult.WRONG_CURRENT_PASSWORD
+        }
+
+        val db = writableDatabase
+        val hashedNewPassword = SecurityUtils.hashPassword(newPasswordRaw)
+
+        val values = ContentValues().apply {
+            put(COLUMN_PASSWORD, hashedNewPassword)
+        }
+
+        val rowsAffected = db.update(
+            TABLE_USERS,
+            values,
+            "$COLUMN_USERNAME = ?",
+            arrayOf(username)
+        )
+        db.close()
+
+        return if (rowsAffected > 0) {
+            ChangePasswordResult.SUCCESS
+        } else {
+            ChangePasswordResult.ERROR
+        }
+    }
+
+    // Đặt lại mật khẩu theo email (cho quên mật khẩu)
+    fun resetPasswordByEmail(email: String, newPasswordRaw: String): Boolean {
+        if (!isEmailExists(email)) return false
+
+        val db = writableDatabase
+        val hashedNewPassword = SecurityUtils.hashPassword(newPasswordRaw)
+
+        val values = ContentValues().apply {
+            put(COLUMN_PASSWORD, hashedNewPassword)
+        }
+
+        val rowsAffected = db.update(
+            TABLE_USERS,
+            values,
+            "$COLUMN_EMAIL = ?",
+            arrayOf(email)
+        )
+        db.close()
+
+        return rowsAffected > 0
+    }
+
+    // Lấy username theo email
+    fun getUsernameByEmail(email: String): String? {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT $COLUMN_USERNAME FROM $TABLE_USERS WHERE $COLUMN_EMAIL = ?",
+            arrayOf(email)
+        )
+        val username = if (cursor.moveToFirst()) {
+            cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USERNAME))
+        } else null
+
+        cursor.close()
+        db.close()
+        return username
+    }
+}
+
+enum class ChangePasswordResult {
+    SUCCESS,
+    WRONG_CURRENT_PASSWORD,
+    ERROR
 }
