@@ -4,37 +4,43 @@ import android.content.Context
 import android.content.SharedPreferences
 
 class UserPreferences(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
 
     companion object {
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
         private const val KEY_USERNAME = "username"
         private const val KEY_EMAIL = "email"
+        private const val KEY_REMEMBER_ME = "remember_me"
     }
 
-    fun saveUserSession(username: String, email: String, isRemembered: Boolean) {
-        val editor = prefs.edit()
-        editor.putBoolean(KEY_IS_LOGGED_IN, isRemembered)
-        editor.putString(KEY_USERNAME, username)
-        editor.putString(KEY_EMAIL, email)
-        editor.apply()
+    fun saveUserSession(username: String, email: String, rememberMe: Boolean) {
+        prefs.edit().apply {
+            putBoolean(KEY_IS_LOGGED_IN, true)
+            putBoolean(KEY_REMEMBER_ME, rememberMe)
+            putString(KEY_USERNAME, username)
+            putString(KEY_EMAIL, email)
+            apply()
+        }
     }
 
     fun clearUserSession() {
-        val editor = prefs.edit()
-        editor.clear()
-        editor.apply()
+        prefs.edit().apply {
+            remove(KEY_IS_LOGGED_IN)
+            remove(KEY_USERNAME)
+            remove(KEY_EMAIL)
+            remove(KEY_REMEMBER_ME)
+            apply()
+        }
     }
 
-    fun isLoggedIn(): Boolean {
-        return prefs.getBoolean(KEY_IS_LOGGED_IN, false)
-    }
+    fun isLoggedIn(): Boolean =
+        prefs.getBoolean(KEY_IS_LOGGED_IN, false)
 
-    fun getUsername(): String? {
-        return prefs.getString(KEY_USERNAME, null)
-    }
-    
-    fun getEmail(): String? {
-        return prefs.getString(KEY_EMAIL, null)
-    }
+    fun getUsername(): String? =
+        prefs.getString(KEY_USERNAME, null)
+
+    fun getEmail(): String? =
+        prefs.getString(KEY_EMAIL, null)
 }

@@ -1,9 +1,10 @@
-package com.example.myapplication
+package com.example.myapplication.utils
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -15,6 +16,7 @@ import com.example.myapplication.ui.auth.LoginScreen
 import com.example.myapplication.ui.auth.RegisterScreen
 import com.example.myapplication.ui.home.HomeScreen
 import com.example.myapplication.ui.theme.MyApplicationTheme
+import com.example.myapplication.ui.vocabulary.DictionaryScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,39 +30,66 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/* =========================
+   SCREEN STATE
+   ========================= */
 enum class Screen {
-    LOGIN, REGISTER, HOME
+    LOGIN,
+    REGISTER,
+    HOME,
+    DICTIONARY
 }
 
+/* =========================
+   MAIN APP
+   ========================= */
 @Composable
 fun MainApp() {
     val context = LocalContext.current
     val userPreferences = remember { UserPreferences(context) }
-    
-    // Determine initial state based on login status
-    var currentScreen by remember { 
-        mutableStateOf(if (userPreferences.isLoggedIn()) Screen.HOME else Screen.LOGIN) 
+
+    var currentScreen by remember {
+        mutableStateOf(
+            if (userPreferences.isLoggedIn()) Screen.HOME else Screen.LOGIN
+        )
     }
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        // Apply padding to content to respect edge-to-edge
-        androidx.compose.foundation.layout.Box(modifier = Modifier.padding(innerPadding)) {
+        Box(modifier = Modifier.padding(innerPadding)) {
+
             when (currentScreen) {
+
                 Screen.LOGIN -> {
                     LoginScreen(
                         onLoginSuccess = { currentScreen = Screen.HOME },
                         onNavigateToRegister = { currentScreen = Screen.REGISTER }
                     )
                 }
+
                 Screen.REGISTER -> {
                     RegisterScreen(
-                        onRegisterSuccess = { currentScreen = Screen.LOGIN }, // Or go directly to HOME if desired
+                        onRegisterSuccess = { currentScreen = Screen.LOGIN },
                         onNavigateToLogin = { currentScreen = Screen.LOGIN }
                     )
                 }
+
                 Screen.HOME -> {
                     HomeScreen(
-                        onLogout = { currentScreen = Screen.LOGIN }
+                        onLogout = {
+                            userPreferences.clearUserSession()
+                            currentScreen = Screen.LOGIN
+                        },
+                        onVocabularyClick = {
+                            currentScreen = Screen.DICTIONARY
+                        }
+                    )
+                }
+
+                Screen.DICTIONARY -> {
+                    DictionaryScreen(
+                        onBack = {
+                            currentScreen = Screen.HOME
+                        }
                     )
                 }
             }
