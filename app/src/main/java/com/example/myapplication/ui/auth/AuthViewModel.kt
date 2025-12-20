@@ -37,6 +37,9 @@ class AuthViewModel(
     private val _registerState = MutableStateFlow(AuthState())
     val registerState: StateFlow<AuthState> = _registerState.asStateFlow()
 
+    private val _forgotPasswordState = MutableStateFlow(AuthState())
+    val forgotPasswordState: StateFlow<AuthState> = _forgotPasswordState.asStateFlow()
+
     /**
      * Đăng nhập bằng Firebase
      */
@@ -49,8 +52,16 @@ class AuthViewModel(
                 val user = result.user
 
                 if (user != null) {
+                    // Lấy username từ local database dựa vào email
+                    // Điều này đảm bảo username luôn đúng với username đã đăng ký
+                    var username = dbHelper.getUsernameByEmail(email)
+
+                    // Nếu không tìm thấy trong database, fallback sang displayName hoặc email prefix
+                    if (username == null) {
+                        username = user.displayName ?: email.substringBefore("@")
+                    }
+
                     // Lưu session
-                    val username = user.displayName ?: email.substringBefore("@")
                     userPreferences.saveUserSession(username, email, rememberMe)
 
                     _loginState.value = AuthState(isSuccess = true)
@@ -146,6 +157,39 @@ class AuthViewModel(
 
     fun resetRegisterState() {
         _registerState.value = AuthState()
+    }
+
+    fun resetForgotPasswordState() {
+        _forgotPasswordState.value = AuthState()
+    }
+
+    /**
+     * Gửi email reset mật khẩu qua Firebase
+     */
+    fun sendPasswordResetEmail(email: String) {
+        viewModelScope.launch {
+            _forgotPasswordState.value = AuthState(isLoading = true)
+
+            try {
+                firebaseAuth.sendPasswordResetEmail(email).await()
+                _forgotPasswordState.value = AuthState(isSuccess = true)
+            } catch (e: Exception) {
+                val errorMessage = when {
+                    e.message?.contains("user-not-found") == true ||
+                    e.message?.contains("USER_NOT_FOUND") == true ->
+                        "Email chưa được đăng ký"
+                    e.message?.contains("invalid-email") == true ||
+                    e.message?.contains("INVALID_EMAIL") == true ->
+                        "Email không hợp lệ"
+                    e.message?.contains("too-many-requests") == true ->
+                        "Quá nhiều yêu cầu. Vui lòng thử lại sau"
+                    e.message?.contains("network") == true ->
+                        "Lỗi kết nối mạng"
+                    else -> e.message ?: "Đã có lỗi xảy ra"
+                }
+                _forgotPasswordState.value = AuthState(error = errorMessage)
+            }
+        }
     }
 
     /**
