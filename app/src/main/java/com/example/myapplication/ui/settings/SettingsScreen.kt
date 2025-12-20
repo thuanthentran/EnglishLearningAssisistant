@@ -778,8 +778,8 @@ fun SettingsScreen(
                 viewModel.resetPasswordChangeState()
             },
             onChangePassword = { currentPassword, newPassword ->
-                val username = userPreferences.getUsername() ?: ""
-                viewModel.changePassword(username, currentPassword, newPassword)
+                // Gọi Firebase để đổi mật khẩu - không cần username
+                viewModel.changePassword(currentPassword, newPassword)
             },
             isLoading = passwordChangeState.isLoading,
             externalError = passwordChangeState.error,

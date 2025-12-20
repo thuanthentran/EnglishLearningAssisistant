@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.repository.AuthRepository
-import com.example.myapplication.data.repository.WrongPasswordException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,21 +35,20 @@ class SettingsViewModel(
     val forgotPasswordState: StateFlow<ForgotPasswordState> = _forgotPasswordState.asStateFlow()
 
     /**
-     * Đổi mật khẩu người dùng (local database)
+     * Đổi mật khẩu người dùng qua Firebase
+     * @param currentPassword Mật khẩu hiện tại
+     * @param newPassword Mật khẩu mới
      */
-    fun changePassword(username: String, currentPassword: String, newPassword: String) {
+    fun changePassword(currentPassword: String, newPassword: String) {
         viewModelScope.launch {
             _passwordChangeState.value = PasswordChangeState(isLoading = true)
 
-            authRepository.changePassword(username, currentPassword, newPassword)
+            authRepository.changePasswordFirebase(currentPassword, newPassword)
                 .onSuccess {
                     _passwordChangeState.value = PasswordChangeState(isSuccess = true)
                 }
                 .onFailure { e ->
-                    val errorMessage = when (e) {
-                        is WrongPasswordException -> "Mật khẩu hiện tại không đúng"
-                        else -> e.message ?: "Đã có lỗi xảy ra"
-                    }
+                    val errorMessage = e.message ?: "Đã có lỗi xảy ra"
                     _passwordChangeState.value = PasswordChangeState(error = errorMessage)
                 }
         }
