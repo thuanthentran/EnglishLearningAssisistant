@@ -80,16 +80,25 @@ class DatabaseHelper(context: Context) :
 
     fun checkUser(username: String, passwordRaw: String): Boolean {
         val db = readableDatabase
-        val hashedPassword = SecurityUtils.hashPassword(passwordRaw)
+        return try {
+            val hashedPassword = SecurityUtils.hashPassword(passwordRaw)
+            android.util.Log.d("DatabaseHelper", "checkUser: username='$username', hashedPassword='$hashedPassword'")
 
-        val cursor = db.rawQuery(
-            "SELECT 1 FROM $TABLE_USERS WHERE $COLUMN_USERNAME = ? AND $COLUMN_PASSWORD = ?",
-            arrayOf(username, hashedPassword)
-        )
-        val exists = cursor.moveToFirst()
-        cursor.close()
-        db.close()
-        return exists
+            val cursor = db.rawQuery(
+                "SELECT 1 FROM $TABLE_USERS WHERE $COLUMN_USERNAME = ? AND $COLUMN_PASSWORD = ?",
+                arrayOf(username, hashedPassword)
+            )
+            try {
+                val found = cursor.moveToFirst()
+                android.util.Log.d("DatabaseHelper", "checkUser: User found=$found")
+                found
+            } finally {
+                cursor.close()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("DatabaseHelper", "checkUser: Exception", e)
+            false
+        }
     }
 
     fun getUserEmail(username: String): String? {
@@ -109,29 +118,50 @@ class DatabaseHelper(context: Context) :
 
     // Đổi mật khẩu - kiểm tra mật khẩu hiện tại và cập nhật mật khẩu mới
     fun changePassword(username: String, currentPasswordRaw: String, newPasswordRaw: String): ChangePasswordResult {
+        // Kiểm tra username không rỗng
+        if (username.isEmpty()) {
+            android.util.Log.e("DatabaseHelper", "changePassword: username is empty")
+            return ChangePasswordResult.ERROR
+        }
+
+        // Kiểm tra xem user có tồn tại không
+        if (!isUsernameExists(username)) {
+            android.util.Log.e("DatabaseHelper", "changePassword: username '$username' does not exist")
+            return ChangePasswordResult.WRONG_CURRENT_PASSWORD
+        }
+
+        android.util.Log.d("DatabaseHelper", "changePassword: Checking password for username '$username'")
+
         // Kiểm tra mật khẩu hiện tại
         if (!checkUser(username, currentPasswordRaw)) {
+            android.util.Log.e("DatabaseHelper", "changePassword: Wrong current password for username '$username'")
             return ChangePasswordResult.WRONG_CURRENT_PASSWORD
         }
 
         val db = writableDatabase
-        val hashedNewPassword = SecurityUtils.hashPassword(newPasswordRaw)
+        return try {
+            val hashedNewPassword = SecurityUtils.hashPassword(newPasswordRaw)
 
-        val values = ContentValues().apply {
-            put(COLUMN_PASSWORD, hashedNewPassword)
-        }
+            val values = ContentValues().apply {
+                put(COLUMN_PASSWORD, hashedNewPassword)
+            }
 
-        val rowsAffected = db.update(
-            TABLE_USERS,
-            values,
-            "$COLUMN_USERNAME = ?",
-            arrayOf(username)
-        )
-        db.close()
+            val rowsAffected = db.update(
+                TABLE_USERS,
+                values,
+                "$COLUMN_USERNAME = ?",
+                arrayOf(username)
+            )
 
-        return if (rowsAffected > 0) {
-            ChangePasswordResult.SUCCESS
-        } else {
+            if (rowsAffected > 0) {
+                android.util.Log.d("DatabaseHelper", "changePassword: Password changed successfully for username '$username'")
+                ChangePasswordResult.SUCCESS
+            } else {
+                android.util.Log.e("DatabaseHelper", "changePassword: No rows affected for username '$username'")
+                ChangePasswordResult.ERROR
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("DatabaseHelper", "changePassword: Exception", e)
             ChangePasswordResult.ERROR
         }
     }
