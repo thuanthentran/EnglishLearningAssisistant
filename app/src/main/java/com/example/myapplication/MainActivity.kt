@@ -15,6 +15,8 @@ import com.example.myapplication.data.UserPreferences
 import com.example.myapplication.ui.auth.LoginScreen
 import com.example.myapplication.ui.auth.RegisterScreen
 import com.example.myapplication.ui.home.HomeScreen
+import com.example.myapplication.ui.homework.HomeworkMainScreen
+import com.example.myapplication.ui.homework.HomeworkSolutionScreen
 import com.example.myapplication.ui.settings.SettingsScreen
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.ui.vocabulary.DictionaryScreen
@@ -46,6 +48,8 @@ enum class Screen {
     REGISTER,
     HOME,
     DICTIONARY,
+    HOMEWORK,
+    HOMEWORK_SOLUTION,
     SETTINGS
 }
 
@@ -94,6 +98,9 @@ fun MainApp(
                         onVocabularyClick = {
                             currentScreen = Screen.DICTIONARY
                         },
+                        onHomeworkClick = {
+                            currentScreen = Screen.HOMEWORK
+                        },
                         onSettingsClick = {
                             currentScreen = Screen.SETTINGS
                         }
@@ -105,6 +112,27 @@ fun MainApp(
                         onBack = {
                             currentScreen = Screen.HOME
                         }
+                    )
+                }
+
+                Screen.HOMEWORK -> {
+                    HomeworkMainScreen(
+                        onNavigateToSolution = {
+                            currentScreen = Screen.HOMEWORK_SOLUTION
+                        },
+                        onBack = {
+                            currentScreen = Screen.HOME
+                        },
+                        currentUsername = userPreferences.getUsername() ?: "User"
+                    )
+                }
+
+                Screen.HOMEWORK_SOLUTION -> {
+                    HomeworkSolutionScreen(
+                        onBack = {
+                            currentScreen = Screen.HOMEWORK
+                        },
+                        currentUsername = userPreferences.getUsername() ?: "User"
                     )
                 }
 
@@ -120,3 +148,5 @@ fun MainApp(
         }
     }
 }
+
+
