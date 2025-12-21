@@ -98,4 +98,23 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
 
+    // ML Kit Text Recognition
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
+
+    // Gemini API
+    implementation("com.google.ai.client.generativeai:generativeai:0.4.0")
+
+    // Camera and Image Picker
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("androidx.camera:camera-view:1.3.1")
+    implementation("com.google.accompanist:accompanist-permissions:0.35.0-alpha")
+
+    // Image Picker
+    implementation("io.github.lucksiege:pictureselector:v3.10.8")
+
+    // Retrofit for API calls
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
 }

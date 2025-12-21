@@ -11,13 +11,22 @@ class DatabaseHelper(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "UserDatabase.db"
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_VERSION = 2
 
         const val TABLE_USERS = "users"
         const val COLUMN_ID = "id"
         const val COLUMN_USERNAME = "username"
         const val COLUMN_EMAIL = "email"
         const val COLUMN_PASSWORD = "password"
+
+        // Homework table
+        const val TABLE_HOMEWORK = "homework"
+        const val HOMEWORK_ID = "id"
+        const val HOMEWORK_USERNAME = "username"
+        const val HOMEWORK_IMAGE_PATH = "image_path"
+        const val HOMEWORK_RECOGNIZED_TEXT = "recognized_text"
+        const val HOMEWORK_SOLUTION = "solution"
+        const val HOMEWORK_CREATED_AT = "created_at"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -30,9 +39,23 @@ class DatabaseHelper(context: Context) :
             )
         """.trimIndent()
         db.execSQL(createTable)
+
+        val createHomeworkTable = """
+            CREATE TABLE $TABLE_HOMEWORK (
+                $HOMEWORK_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $HOMEWORK_USERNAME TEXT NOT NULL,
+                $HOMEWORK_IMAGE_PATH TEXT NOT NULL,
+                $HOMEWORK_RECOGNIZED_TEXT TEXT,
+                $HOMEWORK_SOLUTION TEXT,
+                $HOMEWORK_CREATED_AT INTEGER NOT NULL,
+                FOREIGN KEY($HOMEWORK_USERNAME) REFERENCES $TABLE_USERS($COLUMN_USERNAME)
+            )
+        """.trimIndent()
+        db.execSQL(createHomeworkTable)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_HOMEWORK")
         db.execSQL("DROP TABLE IF EXISTS $TABLE_USERS")
         onCreate(db)
     }
@@ -203,7 +226,139 @@ class DatabaseHelper(context: Context) :
         db.close()
         return username
     }
+
+    // ===== HOMEWORK FUNCTIONS =====
+
+    // Lưu bài tập mới
+    fun saveHomework(
+        username: String,
+        imagePath: String,
+        recognizedText: String,
+        solution: String
+    ): Long {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(HOMEWORK_USERNAME, username)
+            put(HOMEWORK_IMAGE_PATH, imagePath)
+            put(HOMEWORK_RECOGNIZED_TEXT, recognizedText)
+            put(HOMEWORK_SOLUTION, solution)
+            put(HOMEWORK_CREATED_AT, System.currentTimeMillis())
+        }
+        val result = db.insert(TABLE_HOMEWORK, null, values)
+        db.close()
+        return result
+    }
+
+    // Lấy tất cả bài tập của một user, sắp xếp theo thời gian mới nhất trước
+    fun getAllHomeworkByUsername(username: String): List<HomeworkItem> {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT * FROM $TABLE_HOMEWORK WHERE $HOMEWORK_USERNAME = ? ORDER BY $HOMEWORK_CREATED_AT DESC",
+            arrayOf(username)
+        )
+
+        val homeworkList = mutableListOf<HomeworkItem>()
+        while (cursor.moveToNext()) {
+            homeworkList.add(
+                HomeworkItem(
+                    id = cursor.getLong(cursor.getColumnIndexOrThrow(HOMEWORK_ID)),
+                    username = cursor.getString(cursor.getColumnIndexOrThrow(HOMEWORK_USERNAME)),
+                    imagePath = cursor.getString(cursor.getColumnIndexOrThrow(HOMEWORK_IMAGE_PATH)),
+                    recognizedText = cursor.getString(cursor.getColumnIndexOrThrow(HOMEWORK_RECOGNIZED_TEXT)),
+                    solution = cursor.getString(cursor.getColumnIndexOrThrow(HOMEWORK_SOLUTION)),
+                    createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(HOMEWORK_CREATED_AT))
+                )
+            )
+        }
+        cursor.close()
+        db.close()
+        return homeworkList
+    }
+
+    // Lấy bài tập theo ID
+    fun getHomeworkById(id: Long): HomeworkItem? {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT * FROM $TABLE_HOMEWORK WHERE $HOMEWORK_ID = ?",
+            arrayOf(id.toString())
+        )
+
+        val homework = if (cursor.moveToFirst()) {
+            HomeworkItem(
+                id = cursor.getLong(cursor.getColumnIndexOrThrow(HOMEWORK_ID)),
+                username = cursor.getString(cursor.getColumnIndexOrThrow(HOMEWORK_USERNAME)),
+                imagePath = cursor.getString(cursor.getColumnIndexOrThrow(HOMEWORK_IMAGE_PATH)),
+                recognizedText = cursor.getString(cursor.getColumnIndexOrThrow(HOMEWORK_RECOGNIZED_TEXT)),
+                solution = cursor.getString(cursor.getColumnIndexOrThrow(HOMEWORK_SOLUTION)),
+                createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(HOMEWORK_CREATED_AT))
+            )
+        } else null
+
+        cursor.close()
+        db.close()
+        return homework
+    }
+
+    // Xóa bài tập theo ID
+    fun deleteHomework(id: Long): Boolean {
+        val db = writableDatabase
+        val rowsAffected = db.delete(TABLE_HOMEWORK, "$HOMEWORK_ID = ?", arrayOf(id.toString()))
+        db.close()
+        return rowsAffected > 0
+    }
+
+    // Xóa tất cả bài tập của một user
+    fun deleteAllHomeworkByUsername(username: String): Boolean {
+        val db = writableDatabase
+        val rowsAffected = db.delete(TABLE_HOMEWORK, "$HOMEWORK_USERNAME = ?", arrayOf(username))
+        db.close()
+        return rowsAffected > 0
+    }
+
+    // Cập nhật bài tập
+    fun updateHomework(
+        id: Long,
+        imagePath: String,
+        recognizedText: String,
+        solution: String
+    ): Boolean {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(HOMEWORK_IMAGE_PATH, imagePath)
+            put(HOMEWORK_RECOGNIZED_TEXT, recognizedText)
+            put(HOMEWORK_SOLUTION, solution)
+            put(HOMEWORK_CREATED_AT, System.currentTimeMillis())
+        }
+        val rowsAffected = db.update(TABLE_HOMEWORK, values, "$HOMEWORK_ID = ?", arrayOf(id.toString()))
+        db.close()
+        return rowsAffected > 0
+    }
+
+    // Lấy số lượng bài tập của một user
+    fun getHomeworkCountByUsername(username: String): Int {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT COUNT(*) FROM $TABLE_HOMEWORK WHERE $HOMEWORK_USERNAME = ?",
+            arrayOf(username)
+        )
+        val count = if (cursor.moveToFirst()) {
+            cursor.getInt(0)
+        } else 0
+        cursor.close()
+        db.close()
+        return count
+    }
 }
+
+// Data class cho Homework
+data class HomeworkItem(
+    val id: Long,
+    val username: String,
+    val imagePath: String,
+    val recognizedText: String,
+    val solution: String,
+    val createdAt: Long
+)
 
 enum class ChangePasswordResult {
     SUCCESS,

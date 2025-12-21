@@ -51,6 +51,7 @@ enum class BottomTab {
 fun HomeScreen(
     onLogout: () -> Unit,
     onVocabularyClick: () -> Unit,
+    onHomeworkClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -65,6 +66,7 @@ fun HomeScreen(
             onLogout()
         },
         onVocabularyClick = onVocabularyClick,
+        onHomeworkClick = onHomeworkClick,
         onSettingsClick = onSettingsClick
     )
 }
@@ -90,6 +92,7 @@ fun HomeScreenContent(
     avatarIndex: Int = 0,
     onLogout: () -> Unit,
     onVocabularyClick: () -> Unit,
+    onHomeworkClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
@@ -291,7 +294,7 @@ fun HomeScreenContent(
                     DailyGoalSection()
                     Spacer(Modifier.height(20.dp))
 
-                    LearningFeaturesSection(onVocabularyClick)
+                    LearningFeaturesSection(onVocabularyClick, onHomeworkClick)
                     Spacer(Modifier.height(20.dp))
 
                     StatisticsSection()
@@ -573,7 +576,7 @@ fun DailyGoalSection() {
 }
 
 @Composable
-fun LearningFeaturesSection(onVocabularyClick: () -> Unit) {
+fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -> Unit = {}) {
     val textColor = MaterialTheme.colorScheme.onBackground
 
     Column(Modifier.padding(horizontal = 16.dp)) {
@@ -630,6 +633,18 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ModernFeatureCard(
                 modifier = Modifier.weight(1f),
+                icon = Icons.Default.Edit,
+                title = "Giải Bài",
+                description = "Giải bài tập",
+                gradient = Brush.linearGradient(
+                    colors = listOf(Color(0xFFFF6B6B), Color(0xFFEE5A6F))
+                ),
+                iconBgColor = Color(0xFFFF6B6B),
+                onClick = onHomeworkClick
+            )
+
+            ModernFeatureCard(
+                modifier = Modifier.weight(1f),
                 icon = Icons.AutoMirrored.Filled.LibraryBooks,
                 title = "Đọc",
                 description = "Đọc hiểu",
@@ -638,7 +653,11 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit) {
                 ),
                 iconBgColor = Color(0xFFFF9800)
             )
+        }
 
+        Spacer(Modifier.height(12.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ModernFeatureCard(
                 modifier = Modifier.weight(1f),
                 icon = Icons.AutoMirrored.Filled.Chat,
@@ -648,6 +667,17 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit) {
                     colors = listOf(Color(0xFF9C27B0), Color(0xFFE91E63))
                 ),
                 iconBgColor = Color(0xFF9C27B0)
+            )
+
+            ModernFeatureCard(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.School,
+                title = "Khác",
+                description = "Tính năng khác",
+                gradient = Brush.linearGradient(
+                    colors = listOf(Color(0xFF00BCD4), Color(0xFF009688))
+                ),
+                iconBgColor = Color(0xFF00BCD4)
             )
         }
     }
