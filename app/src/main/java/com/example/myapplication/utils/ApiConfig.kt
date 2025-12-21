@@ -1,5 +1,7 @@
 package com.example.myapplication.utils
 
+import com.example.myapplication.BuildConfig
+
 /**
  * API Configuration
  *
@@ -11,7 +13,7 @@ package com.example.myapplication.utils
  */
 object ApiConfig {
     // Gemini API Configuration
-    const val GEMINI_API_KEY = "AIzaSyDLLI0lRDLPaXpnPURww1VQdoBNlXTlO60"
+    const val GEMINI_API_KEY = BuildConfig.GEMINI_API_KEY
     const val GEMINI_MODEL = "gemini-2.5-flash"
 
     // API Endpoints
