@@ -4,7 +4,14 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
 }
-
+// Read GEMINI_API_KEY from local.properties without relying on java.util.Properties
+val geminiSanitized: String = run {
+    val lp = rootProject.file("local.properties")
+    if (!lp.exists()) return@run ""
+    val line = lp.readLines().firstOrNull { it.trim().startsWith("GEMINI_API_KEY=") }
+    val raw = line?.substringAfter("=")?.trim() ?: ""
+    raw.removeSurrounding("\"").removeSurrounding("'")
+}
 android {
     namespace = "com.example.myapplication"
     compileSdk = 36
@@ -15,7 +22,12 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
+        // Use GEMINI_API_KEY from local.properties (geminiSanitized has surrounding quotes removed)
+        buildConfigField(
+            "String",
+            "GEMINI_API_KEY",
+            "\"$geminiSanitized\""
+        )
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -37,6 +49,8 @@ android {
     }
     buildFeatures {
         compose = true
+        // Enable BuildConfig so buildConfigField(...) in defaultConfig works
+        buildConfig = true
     }
 }
 
