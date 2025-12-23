@@ -52,7 +52,8 @@ fun HomeScreen(
     onLogout: () -> Unit,
     onVocabularyClick: () -> Unit,
     onHomeworkClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {}
+    onSettingsClick: () -> Unit = {},
+    onWritingPracticeClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val userPreferences = remember { UserPreferences(context) }
@@ -67,7 +68,8 @@ fun HomeScreen(
         },
         onVocabularyClick = onVocabularyClick,
         onHomeworkClick = onHomeworkClick,
-        onSettingsClick = onSettingsClick
+        onSettingsClick = onSettingsClick,
+        onWritingPracticeClick = onWritingPracticeClick
     )
 }
 
@@ -93,7 +95,8 @@ fun HomeScreenContent(
     onLogout: () -> Unit,
     onVocabularyClick: () -> Unit,
     onHomeworkClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {}
+    onSettingsClick: () -> Unit = {},
+    onWritingPracticeClick: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
 
@@ -294,7 +297,7 @@ fun HomeScreenContent(
                     DailyGoalSection()
                     Spacer(Modifier.height(20.dp))
 
-                    LearningFeaturesSection(onVocabularyClick, onHomeworkClick)
+                    LearningFeaturesSection(onVocabularyClick, onHomeworkClick, onWritingPracticeClick)
                     Spacer(Modifier.height(20.dp))
 
                     StatisticsSection()
@@ -576,7 +579,7 @@ fun DailyGoalSection() {
 }
 
 @Composable
-fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -> Unit = {}) {
+fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -> Unit = {}, onWritingPracticeClick: () -> Unit = {}) {
     val textColor = MaterialTheme.colorScheme.onBackground
 
     Column(Modifier.padding(horizontal = 16.dp)) {
@@ -666,7 +669,8 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -
                 gradient = Brush.linearGradient(
                     colors = listOf(Color(0xFF9C27B0), Color(0xFFE91E63))
                 ),
-                iconBgColor = Color(0xFF9C27B0)
+                iconBgColor = Color(0xFF9C27B0),
+                onClick = onWritingPracticeClick
             )
 
             ModernFeatureCard(
