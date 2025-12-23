@@ -31,6 +31,24 @@ val azureOpenAIEndpoint: String = run {
     raw.removeSurrounding("\"").removeSurrounding("'")
 }
 
+// Read Azure STT API Key from local.properties
+val azureSttApiKey: String = run {
+    val lp = rootProject.file("local.properties")
+    if (!lp.exists()) return@run ""
+    val line = lp.readLines().firstOrNull { it.trim().startsWith("AZURE_STT_API_KEY=") }
+    val raw = line?.substringAfter("=")?.trim() ?: ""
+    raw.removeSurrounding("\"").removeSurrounding("'")
+}
+
+// Read Azure STT Endpoint from local.properties
+val azureSttEndpoint: String = run {
+    val lp = rootProject.file("local.properties")
+    if (!lp.exists()) return@run ""
+    val line = lp.readLines().firstOrNull { it.trim().startsWith("AZURE_STT_ENDPOINT=") }
+    val raw = line?.substringAfter("=")?.trim() ?: ""
+    raw.removeSurrounding("\"").removeSurrounding("'")
+}
+
 android {
     namespace = "com.example.myapplication"
     compileSdk = 36
@@ -57,6 +75,17 @@ android {
             "String",
             "AZURE_OPENAI_ENDPOINT",
             "\"$azureOpenAIEndpoint\""
+        )
+        // Azure STT API Key and Endpoint
+        buildConfigField(
+            "String",
+            "AZURE_STT_API_KEY",
+            "\"$azureSttApiKey\""
+        )
+        buildConfigField(
+            "String",
+            "AZURE_STT_ENDPOINT",
+            "\"$azureSttEndpoint\""
         )
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
