@@ -347,31 +347,19 @@ fun HomeScreenContent(
                CHAT AI TAB
                ========================= */
             BottomTab.CHAT_AI -> {
-                Box(
+                Column(
                     modifier = Modifier
                         .padding(padding)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.SmartToy,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp),
-                            tint = Color(0xFF667eea).copy(alpha = 0.5f)
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            "Chat với AI",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = textColor
-                        )
-                        Text(
-                            "Tính năng đang phát triển",
-                            color = secondaryTextColor
-                        )
-                    }
+                    AIFeaturesSection(
+                        onHomeworkClick = onHomeworkClick,
+                        onWritingPracticeClick = onWritingPracticeClick,
+                        onImageLearningClick = onImageLearningClick,
+                        onSpeakingPracticeClick = onSpeakingPracticeClick
+                    )
+                    Spacer(Modifier.height(24.dp))
                 }
             }
         }
@@ -627,34 +615,6 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -
 
             ModernFeatureCard(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Default.RecordVoiceOver,
-                title = "Nói",
-                description = "Luyện nói",
-                gradient = Brush.linearGradient(
-                    colors = listOf(Color(0xFF2196F3), Color(0xFF03A9F4))
-                ),
-                iconBgColor = Color(0xFF2196F3),
-                onClick = onSpeakingPracticeClick
-            )
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ModernFeatureCard(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.Edit,
-                title = "Giải Bài",
-                description = "Giải bài tập",
-                gradient = Brush.linearGradient(
-                    colors = listOf(Color(0xFFFF6B6B), Color(0xFFEE5A6F))
-                ),
-                iconBgColor = Color(0xFFFF6B6B),
-                onClick = onHomeworkClick
-            )
-
-            ModernFeatureCard(
-                modifier = Modifier.weight(1f),
                 icon = Icons.AutoMirrored.Filled.LibraryBooks,
                 title = "Đọc",
                 description = "Đọc hiểu",
@@ -662,6 +622,80 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -
                     colors = listOf(Color(0xFFFF9800), Color(0xFFFFC107))
                 ),
                 iconBgColor = Color(0xFFFF9800)
+            )
+        }
+    }
+}
+
+@Composable
+fun AIFeaturesSection(
+    onHomeworkClick: () -> Unit = {},
+    onWritingPracticeClick: () -> Unit = {},
+    onImageLearningClick: () -> Unit = {},
+    onSpeakingPracticeClick: () -> Unit = {}
+) {
+    val textColor = MaterialTheme.colorScheme.onBackground
+
+    Column(Modifier.padding(horizontal = 16.dp)) {
+        Spacer(Modifier.height(16.dp))
+
+        // Header with AI icon
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.SmartToy,
+                    contentDescription = null,
+                    tint = Color(0xFF667eea),
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Tính năng AI",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = textColor
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            "Sử dụng trí tuệ nhân tạo để hỗ trợ học tập",
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Nói - Speaking Practice
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ModernFeatureCard(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.RecordVoiceOver,
+                title = "Nói",
+                description = "Luyện nói với AI",
+                gradient = Brush.linearGradient(
+                    colors = listOf(Color(0xFF2196F3), Color(0xFF03A9F4))
+                ),
+                iconBgColor = Color(0xFF2196F3),
+                onClick = onSpeakingPracticeClick
+            )
+
+            ModernFeatureCard(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.Edit,
+                title = "Giải Bài",
+                description = "Giải bài tập với AI",
+                gradient = Brush.linearGradient(
+                    colors = listOf(Color(0xFFFF6B6B), Color(0xFFEE5A6F))
+                ),
+                iconBgColor = Color(0xFFFF6B6B),
+                onClick = onHomeworkClick
             )
         }
 
@@ -672,7 +706,7 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -
                 modifier = Modifier.weight(1f),
                 icon = Icons.AutoMirrored.Filled.Chat,
                 title = "Viết",
-                description = "Luyện viết",
+                description = "Luyện viết với AI",
                 gradient = Brush.linearGradient(
                     colors = listOf(Color(0xFF9C27B0), Color(0xFFE91E63))
                 ),
@@ -684,7 +718,7 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.CameraAlt,
                 title = "Học qua ảnh",
-                description = "Nhận diện vật",
+                description = "Nhận diện vật với AI",
                 gradient = Brush.linearGradient(
                     colors = listOf(Color(0xFF00BCD4), Color(0xFF009688))
                 ),
