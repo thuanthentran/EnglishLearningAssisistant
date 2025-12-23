@@ -1,6 +1,7 @@
 package com.example.myapplication.ui.writing
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,18 +35,33 @@ fun WritingPracticeScreen(
     )
     val uiState by viewModel.uiState.collectAsState()
 
-    // Show feedback screen or input screen
-    if (uiState.showFeedbackScreen && uiState.feedbackResult != null) {
-        FeedbackScreen(
-            feedbackResult = uiState.feedbackResult!!,
-            onBack = { viewModel.backFromFeedback() }
-        )
-    } else {
-        WritingInputScreen(
-            uiState = uiState,
-            viewModel = viewModel,
-            onBack = onBack
-        )
+    // Show history screen, feedback screen, or input screen
+    when {
+        uiState.showHistoryScreen -> {
+            HistoryScreen(
+                history = uiState.feedbackHistory,
+                onBack = { viewModel.hideHistory() },
+                onItemClick = { feedbackResult ->
+                    viewModel.hideHistory()
+                    viewModel.viewFeedbackFromHistory(feedbackResult)
+                },
+                onDeleteItem = { timestamp -> viewModel.deleteHistoryItem(timestamp) },
+                onClearAll = { viewModel.clearAllHistory() }
+            )
+        }
+        uiState.showFeedbackScreen && uiState.feedbackResult != null -> {
+            FeedbackScreen(
+                feedbackResult = uiState.feedbackResult!!,
+                onBack = { viewModel.backFromFeedback() }
+            )
+        }
+        else -> {
+            WritingInputScreen(
+                uiState = uiState,
+                viewModel = viewModel,
+                onBack = onBack
+            )
+        }
     }
 }
 
@@ -88,6 +104,12 @@ private fun WritingInputScreen(
                 }
             },
             actions = {
+                IconButton(onClick = { viewModel.showHistory() }) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = "History"
+                    )
+                }
                 IconButton(onClick = { viewModel.clearAll() }) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
@@ -842,3 +864,300 @@ private fun FeedbackScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HistoryScreen(
+    history: List<WritingFeedbackResult>,
+    onBack: () -> Unit,
+    onItemClick: (WritingFeedbackResult) -> Unit,
+    onDeleteItem: (Long) -> Unit,
+    onClearAll: () -> Unit
+) {
+    var showClearDialog by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Top App Bar
+        TopAppBar(
+            title = {
+                Column {
+                    Text(
+                        "History",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "${history.size} saved sessions",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                    )
+                }
+            },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back"
+                    )
+                }
+            },
+            actions = {
+                if (history.isNotEmpty()) {
+                    IconButton(onClick = { showClearDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteSweep,
+                            contentDescription = "Clear All"
+                        )
+                    }
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+            )
+        )
+
+        if (history.isEmpty()) {
+            // Empty state
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.outline
+                    )
+                    Text(
+                        "No history yet",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Your writing practice sessions will appear here",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.outline,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            // History list
+            androidx.compose.foundation.lazy.LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(history.size) { index ->
+                    val item = history[index]
+                    HistoryItemCard(
+                        item = item,
+                        onClick = { onItemClick(item) },
+                        onDelete = { onDeleteItem(item.timestamp) }
+                    )
+                }
+            }
+        }
+    }
+
+    // Clear all confirmation dialog
+    if (showClearDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = { Text("Clear All History?") },
+            text = { Text("This will permanently delete all ${history.size} saved sessions. This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onClearAll()
+                        showClearDialog = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Clear All")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun HistoryItemCard(
+    item: WritingFeedbackResult,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Header row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Exam type chip
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                if (item.examType == WritingExamType.IELTS_TASK2) "IELTS" else "TOEIC",
+                                fontSize = 11.sp
+                            )
+                        },
+                        modifier = Modifier.height(24.dp)
+                    )
+                    // AI Mode chip
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                if (item.aiMode == WritingAIMode.SUGGESTION) "Suggestion" else "Scoring",
+                                fontSize = 11.sp
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (item.aiMode == WritingAIMode.SUGGESTION)
+                                    Icons.Default.Lightbulb else Icons.Default.Grade,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        },
+                        modifier = Modifier.height(24.dp)
+                    )
+                }
+
+                // Delete button
+                IconButton(
+                    onClick = { showDeleteDialog = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Prompt preview
+            Text(
+                "Prompt:",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                item.prompt.take(150) + if (item.prompt.length > 150) "..." else "",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+
+            // User essay indicator
+            if (!item.userEssay.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Description,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.outline
+                    )
+                    Text(
+                        "Essay submitted (${item.userEssay.split("\\s+".toRegex()).size} words)",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Timestamp
+            val dateFormat = remember { java.text.SimpleDateFormat("MMM dd, yyyy • HH:mm", java.util.Locale.getDefault()) }
+            Text(
+                dateFormat.format(java.util.Date(item.timestamp)),
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.outline
+            )
+        }
+    }
+
+    // Delete confirmation dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete this session?") },
+            text = { Text("This will permanently delete this writing practice session.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete()
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
