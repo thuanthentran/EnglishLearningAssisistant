@@ -22,6 +22,7 @@ import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.ui.vocabulary.DictionaryScreen
 import com.example.myapplication.ui.writing.WritingPracticeScreen
 import com.example.myapplication.ui.imagelearning.ImageLearningScreen
+import com.example.myapplication.ui.speaking.SpeakingPracticeScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,7 +55,8 @@ enum class Screen {
     HOMEWORK_SOLUTION,
     SETTINGS,
     WRITING_PRACTICE,
-    IMAGE_LEARNING
+    IMAGE_LEARNING,
+    SPEAKING_PRACTICE
 }
 
 /* =========================
@@ -113,6 +115,9 @@ fun MainApp(
                         },
                         onImageLearningClick = {
                             currentScreen = Screen.IMAGE_LEARNING
+                        },
+                        onSpeakingPracticeClick = {
+                            currentScreen = Screen.SPEAKING_PRACTICE
                         }
                     )
                 }
@@ -165,6 +170,14 @@ fun MainApp(
 
                 Screen.IMAGE_LEARNING -> {
                     ImageLearningScreen(
+                        onBack = {
+                            currentScreen = Screen.HOME
+                        }
+                    )
+                }
+
+                Screen.SPEAKING_PRACTICE -> {
+                    SpeakingPracticeScreen(
                         onBack = {
                             currentScreen = Screen.HOME
                         }

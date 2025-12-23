@@ -54,7 +54,8 @@ fun HomeScreen(
     onHomeworkClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onWritingPracticeClick: () -> Unit = {},
-    onImageLearningClick: () -> Unit = {}
+    onImageLearningClick: () -> Unit = {},
+    onSpeakingPracticeClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val userPreferences = remember { UserPreferences(context) }
@@ -71,7 +72,8 @@ fun HomeScreen(
         onHomeworkClick = onHomeworkClick,
         onSettingsClick = onSettingsClick,
         onWritingPracticeClick = onWritingPracticeClick,
-        onImageLearningClick = onImageLearningClick
+        onImageLearningClick = onImageLearningClick,
+        onSpeakingPracticeClick = onSpeakingPracticeClick
     )
 }
 
@@ -99,7 +101,8 @@ fun HomeScreenContent(
     onHomeworkClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onWritingPracticeClick: () -> Unit = {},
-    onImageLearningClick: () -> Unit = {}
+    onImageLearningClick: () -> Unit = {},
+    onSpeakingPracticeClick: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
 
@@ -300,7 +303,7 @@ fun HomeScreenContent(
                     DailyGoalSection()
                     Spacer(Modifier.height(20.dp))
 
-                    LearningFeaturesSection(onVocabularyClick, onHomeworkClick, onWritingPracticeClick, onImageLearningClick)
+                    LearningFeaturesSection(onVocabularyClick, onHomeworkClick, onWritingPracticeClick, onImageLearningClick, onSpeakingPracticeClick)
                     Spacer(Modifier.height(20.dp))
 
                     StatisticsSection()
@@ -582,7 +585,7 @@ fun DailyGoalSection() {
 }
 
 @Composable
-fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -> Unit = {}, onWritingPracticeClick: () -> Unit = {}, onImageLearningClick: () -> Unit = {}) {
+fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -> Unit = {}, onWritingPracticeClick: () -> Unit = {}, onImageLearningClick: () -> Unit = {}, onSpeakingPracticeClick: () -> Unit = {}) {
     val textColor = MaterialTheme.colorScheme.onBackground
 
     Column(Modifier.padding(horizontal = 16.dp)) {
@@ -624,13 +627,14 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -
 
             ModernFeatureCard(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Default.Hearing,
-                title = "Nghe",
-                description = "Luyện phát âm",
+                icon = Icons.Default.RecordVoiceOver,
+                title = "Nói",
+                description = "Luyện nói",
                 gradient = Brush.linearGradient(
                     colors = listOf(Color(0xFF2196F3), Color(0xFF03A9F4))
                 ),
-                iconBgColor = Color(0xFF2196F3)
+                iconBgColor = Color(0xFF2196F3),
+                onClick = onSpeakingPracticeClick
             )
         }
 
