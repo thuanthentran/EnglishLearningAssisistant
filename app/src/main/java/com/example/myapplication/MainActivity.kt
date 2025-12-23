@@ -20,6 +20,7 @@ import com.example.myapplication.ui.homework.HomeworkSolutionScreen
 import com.example.myapplication.ui.settings.SettingsScreen
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.ui.vocabulary.DictionaryScreen
+import com.example.myapplication.ui.writing.WritingPracticeScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,7 +51,8 @@ enum class Screen {
     DICTIONARY,
     HOMEWORK,
     HOMEWORK_SOLUTION,
-    SETTINGS
+    SETTINGS,
+    WRITING_PRACTICE
 }
 
 /* =========================
@@ -103,6 +105,9 @@ fun MainApp(
                         },
                         onSettingsClick = {
                             currentScreen = Screen.SETTINGS
+                        },
+                        onWritingPracticeClick = {
+                            currentScreen = Screen.WRITING_PRACTICE
                         }
                     )
                 }
@@ -142,6 +147,14 @@ fun MainApp(
                             currentScreen = Screen.HOME
                         },
                         onDarkModeChanged = onDarkModeChanged
+                    )
+                }
+
+                Screen.WRITING_PRACTICE -> {
+                    WritingPracticeScreen(
+                        onBack = {
+                            currentScreen = Screen.HOME
+                        }
                     )
                 }
             }

@@ -226,6 +226,72 @@ class AzureOpenAIRepository {
     }
 
     /**
+     * Generate writing feedback for English practice
+     * Used for IELTS Writing Task 2 and TOEIC Writing Q8
+     * @param prompt The full prompt including instructions, question, and optional essay
+     * @param deploymentId The deployment name to use
+     * @return Result containing the feedback or error
+     */
+    suspend fun generateWritingFeedback(
+        prompt: String,
+        deploymentId: String = DEFAULT_DEPLOYMENT
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            Log.d(TAG, "Generating writing feedback with Azure OpenAI...")
+
+            val messages = listOf(
+                AzureOpenAIMessage(
+                    role = "system",
+                    content = """You are an expert English writing examiner with extensive experience in 
+                        |evaluating IELTS and TOEIC writing tasks. You provide constructive, detailed, 
+                        |and actionable feedback to help students improve their writing skills.
+                        |Always respond in English unless specifically asked otherwise.
+                        |Be encouraging while being honest about areas for improvement.""".trimMargin()
+                ),
+                AzureOpenAIMessage(
+                    role = "user",
+                    content = prompt
+                )
+            )
+
+            val request = AzureOpenAIChatRequest(
+                messages = messages,
+                maxCompletionTokens = MAX_COMPLETION_TOKENS
+            )
+
+            val response = apiService.chatCompletions(
+                deploymentId = deploymentId,
+                apiVersion = API_VERSION,
+                apiKey = API_KEY,
+                request = request
+            )
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                val content = body?.choices?.firstOrNull()?.message?.content
+
+                if (content != null) {
+                    Log.d(TAG, "Writing feedback generated successfully")
+                    Result.success(content)
+                } else if (body?.error != null) {
+                    Log.e(TAG, "Azure OpenAI API error: ${body.error.message}")
+                    Result.failure(Exception(body.error.message ?: "Unknown API error"))
+                } else {
+                    Log.e(TAG, "Empty response from Azure OpenAI")
+                    Result.failure(Exception("Empty response from API"))
+                }
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "Unknown error"
+                Log.e(TAG, "Azure OpenAI API request failed: $errorBody")
+                Result.failure(Exception("API request failed: $errorBody"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error generating writing feedback", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Check if the Azure OpenAI API is available
      */
     suspend fun isApiAvailable(): Boolean = withContext(Dispatchers.IO) {
