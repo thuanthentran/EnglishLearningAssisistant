@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.model.*
+import com.example.myapplication.data.repository.WritingHistoryRepository
 import com.example.myapplication.utils.WritingPracticeService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +24,8 @@ data class WritingPracticeUiState(
     val error: String? = null,
     val feedbackResult: WritingFeedbackResult? = null,
     val feedbackHistory: List<WritingFeedbackResult> = emptyList(),
-    val showFeedbackScreen: Boolean = false
+    val showFeedbackScreen: Boolean = false,
+    val showHistoryScreen: Boolean = false
 )
 
 /**
@@ -35,6 +37,20 @@ class WritingPracticeViewModel(
 
     private val _uiState = MutableStateFlow(WritingPracticeUiState())
     val uiState: StateFlow<WritingPracticeUiState> = _uiState.asStateFlow()
+
+    private val historyRepository = WritingHistoryRepository(context)
+
+    init {
+        loadHistory()
+    }
+
+    /**
+     * Load history from repository
+     */
+    private fun loadHistory() {
+        val history = historyRepository.getHistory()
+        _uiState.value = _uiState.value.copy(feedbackHistory = history)
+    }
 
     /**
      * Update selected exam type
@@ -124,6 +140,9 @@ class WritingPracticeViewModel(
 
             result.fold(
                 onSuccess = { feedbackResult ->
+                    // Save to history repository
+                    historyRepository.saveFeedback(feedbackResult)
+
                     _uiState.value = _uiState.value.copy(
                         feedbackResult = feedbackResult,
                         feedbackHistory = listOf(feedbackResult) + _uiState.value.feedbackHistory,
@@ -183,6 +202,37 @@ class WritingPracticeViewModel(
     }
 
     /**
+     * Show history screen
+     */
+    fun showHistory() {
+        loadHistory() // Refresh history
+        _uiState.value = _uiState.value.copy(showHistoryScreen = true)
+    }
+
+    /**
+     * Hide history screen
+     */
+    fun hideHistory() {
+        _uiState.value = _uiState.value.copy(showHistoryScreen = false)
+    }
+
+    /**
+     * Delete a history item
+     */
+    fun deleteHistoryItem(timestamp: Long) {
+        historyRepository.deleteHistoryItem(timestamp)
+        loadHistory()
+    }
+
+    /**
+     * Clear all history
+     */
+    fun clearAllHistory() {
+        historyRepository.clearHistory()
+        _uiState.value = _uiState.value.copy(feedbackHistory = emptyList())
+    }
+
+    /**
      * Get essay type display name for current exam type
      */
     fun getEssayTypeDisplayName(): String {
@@ -233,4 +283,3 @@ class WritingPracticeViewModelFactory(
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-
