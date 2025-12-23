@@ -53,7 +53,8 @@ fun HomeScreen(
     onVocabularyClick: () -> Unit,
     onHomeworkClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onWritingPracticeClick: () -> Unit = {}
+    onWritingPracticeClick: () -> Unit = {},
+    onImageLearningClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val userPreferences = remember { UserPreferences(context) }
@@ -69,7 +70,8 @@ fun HomeScreen(
         onVocabularyClick = onVocabularyClick,
         onHomeworkClick = onHomeworkClick,
         onSettingsClick = onSettingsClick,
-        onWritingPracticeClick = onWritingPracticeClick
+        onWritingPracticeClick = onWritingPracticeClick,
+        onImageLearningClick = onImageLearningClick
     )
 }
 
@@ -96,7 +98,8 @@ fun HomeScreenContent(
     onVocabularyClick: () -> Unit,
     onHomeworkClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onWritingPracticeClick: () -> Unit = {}
+    onWritingPracticeClick: () -> Unit = {},
+    onImageLearningClick: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
 
@@ -297,7 +300,7 @@ fun HomeScreenContent(
                     DailyGoalSection()
                     Spacer(Modifier.height(20.dp))
 
-                    LearningFeaturesSection(onVocabularyClick, onHomeworkClick, onWritingPracticeClick)
+                    LearningFeaturesSection(onVocabularyClick, onHomeworkClick, onWritingPracticeClick, onImageLearningClick)
                     Spacer(Modifier.height(20.dp))
 
                     StatisticsSection()
@@ -579,7 +582,7 @@ fun DailyGoalSection() {
 }
 
 @Composable
-fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -> Unit = {}, onWritingPracticeClick: () -> Unit = {}) {
+fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -> Unit = {}, onWritingPracticeClick: () -> Unit = {}, onImageLearningClick: () -> Unit = {}) {
     val textColor = MaterialTheme.colorScheme.onBackground
 
     Column(Modifier.padding(horizontal = 16.dp)) {
@@ -675,13 +678,14 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -
 
             ModernFeatureCard(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Default.School,
-                title = "Khác",
-                description = "Tính năng khác",
+                icon = Icons.Default.CameraAlt,
+                title = "Học qua ảnh",
+                description = "Nhận diện vật",
                 gradient = Brush.linearGradient(
                     colors = listOf(Color(0xFF00BCD4), Color(0xFF009688))
                 ),
-                iconBgColor = Color(0xFF00BCD4)
+                iconBgColor = Color(0xFF00BCD4),
+                onClick = onImageLearningClick
             )
         }
     }
