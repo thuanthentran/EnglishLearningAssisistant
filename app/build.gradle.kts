@@ -12,6 +12,25 @@ val geminiSanitized: String = run {
     val raw = line?.substringAfter("=")?.trim() ?: ""
     raw.removeSurrounding("\"").removeSurrounding("'")
 }
+
+// Read Azure OpenAI API Key from local.properties
+val azureOpenAIApiKey: String = run {
+    val lp = rootProject.file("local.properties")
+    if (!lp.exists()) return@run ""
+    val line = lp.readLines().firstOrNull { it.trim().startsWith("AZURE_OPENAI_API_KEY=") }
+    val raw = line?.substringAfter("=")?.trim() ?: ""
+    raw.removeSurrounding("\"").removeSurrounding("'")
+}
+
+// Read Azure OpenAI Endpoint from local.properties
+val azureOpenAIEndpoint: String = run {
+    val lp = rootProject.file("local.properties")
+    if (!lp.exists()) return@run ""
+    val line = lp.readLines().firstOrNull { it.trim().startsWith("AZURE_OPENAI_ENDPOINT=") }
+    val raw = line?.substringAfter("=")?.trim() ?: ""
+    raw.removeSurrounding("\"").removeSurrounding("'")
+}
+
 android {
     namespace = "com.example.myapplication"
     compileSdk = 36
@@ -27,6 +46,17 @@ android {
             "String",
             "GEMINI_API_KEY",
             "\"$geminiSanitized\""
+        )
+        // Azure OpenAI API Key and Endpoint
+        buildConfigField(
+            "String",
+            "AZURE_OPENAI_API_KEY",
+            "\"$azureOpenAIApiKey\""
+        )
+        buildConfigField(
+            "String",
+            "AZURE_OPENAI_ENDPOINT",
+            "\"$azureOpenAIEndpoint\""
         )
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -130,5 +160,7 @@ dependencies {
     // Retrofit for API calls
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
 }
