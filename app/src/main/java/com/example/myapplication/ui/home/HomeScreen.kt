@@ -1,7 +1,8 @@
 package com.example.myapplication.ui.home
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -31,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -58,7 +60,7 @@ fun HomeScreen(
     onHomeworkClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onGameClick: () -> Unit = {},
-    onLearnWordsClick: () -> Unit = {}
+    onLearnWordsClick: () -> Unit = {},
     onWritingPracticeClick: () -> Unit = {},
     onImageLearningClick: () -> Unit = {},
     onSpeakingPracticeClick: () -> Unit = {}
@@ -78,7 +80,7 @@ fun HomeScreen(
         onHomeworkClick = onHomeworkClick,
         onSettingsClick = onSettingsClick,
         onGameClick = onGameClick,
-        onLearnWordsClick = onLearnWordsClick
+        onLearnWordsClick = onLearnWordsClick,
         onWritingPracticeClick = onWritingPracticeClick,
         onImageLearningClick = onImageLearningClick,
         onSpeakingPracticeClick = onSpeakingPracticeClick
@@ -109,7 +111,7 @@ fun HomeScreenContent(
     onHomeworkClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onGameClick: () -> Unit = {},
-    onLearnWordsClick: () -> Unit = {}
+    onLearnWordsClick: () -> Unit = {},
     onWritingPracticeClick: () -> Unit = {},
     onImageLearningClick: () -> Unit = {},
     onSpeakingPracticeClick: () -> Unit = {}
@@ -231,6 +233,9 @@ fun HomeScreenContent(
                 onSettingsClick = onSettingsClick,
                 onGameClick = onGameClick,
                 onLearnWordsClick = onLearnWordsClick,
+                onWritingPracticeClick = onWritingPracticeClick,
+                onImageLearningClick = onImageLearningClick,
+                onSpeakingPracticeClick = onSpeakingPracticeClick,
                 bottomBar = bottomBar
             )
         }
@@ -239,7 +244,14 @@ fun HomeScreenContent(
            AI CHAT ROOT
            ========================= */
         BottomTab.CHAT_AI -> {
-            AiRoot(bottomBar = bottomBar)
+            AiRoot(
+                bottomBar = bottomBar,
+                onHomeworkClick = onHomeworkClick,
+                onWritingPracticeClick = onWritingPracticeClick,
+                onImageLearningClick = onImageLearningClick,
+                onSpeakingPracticeClick = onSpeakingPracticeClick,
+                onLearnWordsClick = onLearnWordsClick
+            )
         }
     }
 }
@@ -259,6 +271,9 @@ fun HomeRoot(
     onSettingsClick: () -> Unit,
     onGameClick: () -> Unit = {},
     onLearnWordsClick: () -> Unit = {},
+    onWritingPracticeClick: () -> Unit = {},
+    onImageLearningClick: () -> Unit = {},
+    onSpeakingPracticeClick: () -> Unit = {},
     bottomBar: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -341,7 +356,15 @@ fun HomeRoot(
                 )
                 Spacer(Modifier.height(20.dp))
 
-                LearningFeaturesSection(onVocabularyClick, onHomeworkClick, onGameClick, onLearnWordsClick)
+                LearningFeaturesSection(
+                    onVocabularyClick = onVocabularyClick,
+                    onHomeworkClick = onHomeworkClick,
+                    onGameClick = onGameClick,
+                    onLearnWordsClick = onLearnWordsClick,
+                    onWritingPracticeClick = onWritingPracticeClick,
+                    onImageLearningClick = onImageLearningClick,
+                    onSpeakingPracticeClick = onSpeakingPracticeClick
+                )
                 Spacer(Modifier.height(20.dp))
 
                 StatisticsSection()
@@ -357,8 +380,6 @@ fun HomeRoot(
 @Composable
 fun EconnectRoot(bottomBar: @Composable () -> Unit) {
     val econnectNavController = rememberNavController()
-                    LearningFeaturesSection(onVocabularyClick, onHomeworkClick, onWritingPracticeClick, onImageLearningClick, onSpeakingPracticeClick)
-                    Spacer(Modifier.height(20.dp))
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -384,7 +405,14 @@ fun EconnectRoot(bottomBar: @Composable () -> Unit) {
    ========================= */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AiRoot(bottomBar: @Composable () -> Unit) {
+fun AiRoot(
+    bottomBar: @Composable () -> Unit,
+    onHomeworkClick: () -> Unit = {},
+    onWritingPracticeClick: () -> Unit = {},
+    onImageLearningClick: () -> Unit = {},
+    onSpeakingPracticeClick: () -> Unit = {},
+    onLearnWordsClick: () -> Unit = {}
+) {
     val backgroundColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
 
@@ -394,7 +422,7 @@ fun AiRoot(bottomBar: @Composable () -> Unit) {
             TopAppBar(
                 title = {
                     Text(
-                        "AI Chat",
+                        "AI Features",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
                         color = textColor
@@ -407,49 +435,20 @@ fun AiRoot(bottomBar: @Composable () -> Unit) {
         },
         bottomBar = bottomBar
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .padding(padding)
-                .fillMaxSize(),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    Icons.Default.SmartToy,
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp),
-                    tint = Color(0xFF667eea).copy(alpha = 0.5f)
-                )
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    "Chat với AI",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor
-                )
-                Text(
-                    "Tính năng đang phát triển",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            /* =========================
-               CHAT AI TAB
-               ========================= */
-            BottomTab.CHAT_AI -> {
-                Column(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    AIFeaturesSection(
-                        onHomeworkClick = onHomeworkClick,
-                        onWritingPracticeClick = onWritingPracticeClick,
-                        onImageLearningClick = onImageLearningClick,
-                        onSpeakingPracticeClick = onSpeakingPracticeClick
-                    )
-                    Spacer(Modifier.height(24.dp))
-                }
-            }
+            AIFeaturesSection(
+                onHomeworkClick = onHomeworkClick,
+                onWritingPracticeClick = onWritingPracticeClick,
+                onImageLearningClick = onImageLearningClick,
+                onSpeakingPracticeClick = onSpeakingPracticeClick,
+                onLearnWordsClick = onLearnWordsClick
+            )
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -708,9 +707,11 @@ fun LearningFeaturesSection(
     onVocabularyClick: () -> Unit,
     onHomeworkClick: () -> Unit = {},
     onGameClick: () -> Unit = {},
-    onLearnWordsClick: () -> Unit = {}
+    onLearnWordsClick: () -> Unit = {},
+    onWritingPracticeClick: () -> Unit = {},
+    onImageLearningClick: () -> Unit = {},
+    onSpeakingPracticeClick: () -> Unit = {}
 ) {
-fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -> Unit = {}, onWritingPracticeClick: () -> Unit = {}, onImageLearningClick: () -> Unit = {}, onSpeakingPracticeClick: () -> Unit = {}) {
     val textColor = MaterialTheme.colorScheme.onBackground
 
     Column(Modifier.padding(horizontal = 16.dp)) {
@@ -755,7 +756,8 @@ fun AIFeaturesSection(
     onHomeworkClick: () -> Unit = {},
     onWritingPracticeClick: () -> Unit = {},
     onImageLearningClick: () -> Unit = {},
-    onSpeakingPracticeClick: () -> Unit = {}
+    onSpeakingPracticeClick: () -> Unit = {},
+    onLearnWordsClick: () -> Unit = {}
 ) {
     val textColor = MaterialTheme.colorScheme.onBackground
 
@@ -866,50 +868,36 @@ fun ModernFeatureCard(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = tween(100),
-        label = "scale"
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "CardScale"
     )
 
     Card(
         modifier = modifier
-            .height(140.dp)
             .scale(scale)
-            .shadow(
-                elevation = 8.dp,
-                shape = RoundedCornerShape(20.dp),
-                spotColor = iconBgColor.copy(alpha = 0.3f)
-            )
             .clickable(
                 interactionSource = interactionSource,
-                indication = null,
-                enabled = onClick != null
-            ) {
-                onClick?.invoke()
-            },
+                indication = null
+            ) { onClick?.invoke() },
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Decorative circle in background
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .offset(x = 70.dp, y = (-20).dp)
-                    .clip(CircleShape)
-                    .background(iconBgColor.copy(alpha = 0.1f))
-            )
-
+        Box(
+            modifier = Modifier
+                .background(gradient)
+                .padding(16.dp)
+                .height(120.dp)
+        ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Box(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(gradient),
+                        .background(Color.White.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -925,15 +913,65 @@ fun ModernFeatureCard(
                         title,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color.White
                     )
                     Text(
                         description,
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Color.White.copy(alpha = 0.8f)
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ModernStatCard(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    value: String,
+    label: String,
+    color: Color
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(color.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                value,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                label,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -949,6 +987,7 @@ fun StatisticsSection() {
             fontSize = 18.sp,
             color = textColor
         )
+
         Spacer(Modifier.height(12.dp))
 
         Row(
@@ -979,63 +1018,6 @@ fun StatisticsSection() {
     }
 }
 
-@Composable
-fun ModernStatCard(
-    modifier: Modifier = Modifier,
-    icon: ImageVector,
-    value: String,
-    label: String,
-    color: Color
-) {
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-
-    Card(
-        modifier = modifier
-            .shadow(
-                elevation = 6.dp,
-                shape = RoundedCornerShape(16.dp),
-                spotColor = color.copy(alpha = 0.2f)
-            ),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = surfaceColor)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(color.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-            Text(
-                value,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = textColor
-            )
-            Text(
-                label,
-                fontSize = 11.sp,
-                color = secondaryTextColor
-            )
-        }
-    }
-}
 
 @Preview(showBackground = true)
 @Composable
@@ -1048,7 +1030,11 @@ fun PreviewHome() {
             onLogout = {},
             onVocabularyClick = {},
             onSettingsClick = {},
-            onGameClick = {}
+            onGameClick = {},
+            onLearnWordsClick = {},
+            onWritingPracticeClick = {},
+            onImageLearningClick = {},
+            onSpeakingPracticeClick = {}
         )
     }
 }
