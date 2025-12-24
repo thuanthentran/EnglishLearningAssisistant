@@ -25,6 +25,9 @@ import com.example.myapplication.ui.game.GameScreen
 import com.example.myapplication.ui.learnwords.LearnWordsScreen
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import com.example.myapplication.ui.writing.WritingPracticeScreen
+import com.example.myapplication.ui.imagelearning.ImageLearningScreen
+import com.example.myapplication.ui.speaking.SpeakingPracticeScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,6 +61,9 @@ enum class Screen {
     SETTINGS,
     GAME,
     LEARN_WORDS
+    WRITING_PRACTICE,
+    IMAGE_LEARNING,
+    SPEAKING_PRACTICE
 }
 
 /* =========================
@@ -130,6 +136,14 @@ fun MainApp(
                         },
                         onLearnWordsClick = {
                             currentScreen = Screen.LEARN_WORDS
+                        onWritingPracticeClick = {
+                            currentScreen = Screen.WRITING_PRACTICE
+                        },
+                        onImageLearningClick = {
+                            currentScreen = Screen.IMAGE_LEARNING
+                        },
+                        onSpeakingPracticeClick = {
+                            currentScreen = Screen.SPEAKING_PRACTICE
                         }
                     )
                 }
@@ -188,6 +202,30 @@ fun MainApp(
                         onLogout = {
                             userPreferences.clearUserSession()
                             currentScreen = Screen.LOGIN
+                        }
+                    )
+                }
+
+                Screen.WRITING_PRACTICE -> {
+                    WritingPracticeScreen(
+                        onBack = {
+                            currentScreen = Screen.HOME
+                        }
+                    )
+                }
+
+                Screen.IMAGE_LEARNING -> {
+                    ImageLearningScreen(
+                        onBack = {
+                            currentScreen = Screen.HOME
+                        }
+                    )
+                }
+
+                Screen.SPEAKING_PRACTICE -> {
+                    SpeakingPracticeScreen(
+                        onBack = {
+                            currentScreen = Screen.HOME
                         }
                     )
                 }

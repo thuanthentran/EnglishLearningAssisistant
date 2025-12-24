@@ -13,7 +13,8 @@ val geminiSanitized: String = run {
     raw.removeSurrounding("\"").removeSurrounding("'")
 }
 
-val azureApiKeySanitized: String = run {
+// Read Azure OpenAI API Key from local.properties
+val azureOpenAIApiKey: String = run {
     val lp = rootProject.file("local.properties")
     if (!lp.exists()) return@run ""
     val line = lp.readLines().firstOrNull { it.trim().startsWith("AZURE_OPENAI_API_KEY=") }
@@ -21,13 +22,33 @@ val azureApiKeySanitized: String = run {
     raw.removeSurrounding("\"").removeSurrounding("'")
 }
 
-val azureEndpointSanitized: String = run {
+// Read Azure OpenAI Endpoint from local.properties
+val azureOpenAIEndpoint: String = run {
     val lp = rootProject.file("local.properties")
     if (!lp.exists()) return@run ""
     val line = lp.readLines().firstOrNull { it.trim().startsWith("AZURE_OPENAI_ENDPOINT=") }
     val raw = line?.substringAfter("=")?.trim() ?: ""
     raw.removeSurrounding("\"").removeSurrounding("'")
 }
+
+// Read Azure STT API Key from local.properties
+val azureSttApiKey: String = run {
+    val lp = rootProject.file("local.properties")
+    if (!lp.exists()) return@run ""
+    val line = lp.readLines().firstOrNull { it.trim().startsWith("AZURE_STT_API_KEY=") }
+    val raw = line?.substringAfter("=")?.trim() ?: ""
+    raw.removeSurrounding("\"").removeSurrounding("'")
+}
+
+// Read Azure STT Endpoint from local.properties
+val azureSttEndpoint: String = run {
+    val lp = rootProject.file("local.properties")
+    if (!lp.exists()) return@run ""
+    val line = lp.readLines().firstOrNull { it.trim().startsWith("AZURE_STT_ENDPOINT=") }
+    val raw = line?.substringAfter("=")?.trim() ?: ""
+    raw.removeSurrounding("\"").removeSurrounding("'")
+}
+
 android {
     namespace = "com.example.myapplication"
     compileSdk = 36
@@ -44,16 +65,27 @@ android {
             "GEMINI_API_KEY",
             "\"$geminiSanitized\""
         )
-        // Add Azure OpenAI config from local.properties
+        // Azure OpenAI API Key and Endpoint
         buildConfigField(
             "String",
             "AZURE_OPENAI_API_KEY",
-            "\"$azureApiKeySanitized\""
+            "\"$azureOpenAIApiKey\""
         )
         buildConfigField(
             "String",
             "AZURE_OPENAI_ENDPOINT",
-            "\"$azureEndpointSanitized\""
+            "\"$azureOpenAIEndpoint\""
+        )
+        // Azure STT API Key and Endpoint
+        buildConfigField(
+            "String",
+            "AZURE_STT_API_KEY",
+            "\"$azureSttApiKey\""
+        )
+        buildConfigField(
+            "String",
+            "AZURE_STT_ENDPOINT",
+            "\"$azureSttEndpoint\""
         )
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -161,5 +193,10 @@ dependencies {
     // Retrofit for API calls
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // ML Kit Image Labeling for object detection
+    implementation("com.google.mlkit:image-labeling:17.0.8")
 
 }
