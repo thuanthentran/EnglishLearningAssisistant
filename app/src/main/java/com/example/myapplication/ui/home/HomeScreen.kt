@@ -12,9 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -27,19 +25,25 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.myapplication.data.UserPreferences
+import com.example.myapplication.ui.econnect.EconnectNavHost
+import com.example.myapplication.ui.econnect.EconnectRoute
 import com.example.myapplication.ui.theme.MyApplicationTheme
 
 /* =========================
    BOTTOM TAB
    ========================= */
 enum class BottomTab {
-    CHAT_RANDOM,
+    ECONNECT,
     HOME,
     CHAT_AI
 }
@@ -52,7 +56,9 @@ fun HomeScreen(
     onLogout: () -> Unit,
     onVocabularyClick: () -> Unit,
     onHomeworkClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {}
+    onSettingsClick: () -> Unit = {},
+    onGameClick: () -> Unit = {},
+    onLearnWordsClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val userPreferences = remember { UserPreferences(context) }
@@ -67,7 +73,9 @@ fun HomeScreen(
         },
         onVocabularyClick = onVocabularyClick,
         onHomeworkClick = onHomeworkClick,
-        onSettingsClick = onSettingsClick
+        onSettingsClick = onSettingsClick,
+        onGameClick = onGameClick,
+        onLearnWordsClick = onLearnWordsClick
     )
 }
 
@@ -93,277 +101,325 @@ fun HomeScreenContent(
     onLogout: () -> Unit,
     onVocabularyClick: () -> Unit,
     onHomeworkClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {}
+    onSettingsClick: () -> Unit = {},
+    onGameClick: () -> Unit = {},
+    onLearnWordsClick: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
 
     // Sử dụng MaterialTheme colors cho dark mode support
-    val backgroundColor = MaterialTheme.colorScheme.background
     val surfaceColor = MaterialTheme.colorScheme.surface
+
+    // Bottom Navigation Bar - shared across all tabs
+    val bottomBar: @Composable () -> Unit = {
+        NavigationBar(
+            containerColor = surfaceColor,
+            tonalElevation = 8.dp,
+            modifier = Modifier
+                .shadow(elevation = 16.dp, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+        ) {
+            NavigationBarItem(
+                selected = selectedTab == BottomTab.ECONNECT,
+                onClick = { selectedTab = BottomTab.ECONNECT },
+                icon = {
+                    Icon(
+                        if (selectedTab == BottomTab.ECONNECT) Icons.Filled.People else Icons.Outlined.People,
+                        null,
+                        tint = if (selectedTab == BottomTab.ECONNECT) Color(0xFF667eea) else Color.Gray
+                    )
+                },
+                label = {
+                    Text(
+                        "Econnect",
+                        color = if (selectedTab == BottomTab.ECONNECT) Color(0xFF667eea) else Color.Gray,
+                        fontWeight = if (selectedTab == BottomTab.ECONNECT) FontWeight.Bold else FontWeight.Normal
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = Color(0xFF667eea).copy(alpha = 0.1f)
+                )
+            )
+
+            NavigationBarItem(
+                selected = selectedTab == BottomTab.HOME,
+                onClick = { selectedTab = BottomTab.HOME },
+                icon = {
+                    Box(
+                        modifier = Modifier
+                            .size(if (selectedTab == BottomTab.HOME) 52.dp else 40.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (selectedTab == BottomTab.HOME) PrimaryGradient
+                                else Brush.linearGradient(listOf(Color.LightGray, Color.LightGray))
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Home,
+                            null,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                },
+                label = {
+                    Text(
+                        "Home",
+                        color = if (selectedTab == BottomTab.HOME) Color(0xFF667eea) else Color.Gray,
+                        fontWeight = if (selectedTab == BottomTab.HOME) FontWeight.Bold else FontWeight.Normal
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = Color.Transparent
+                )
+            )
+
+            NavigationBarItem(
+                selected = selectedTab == BottomTab.CHAT_AI,
+                onClick = { selectedTab = BottomTab.CHAT_AI },
+                icon = {
+                    Icon(
+                        if (selectedTab == BottomTab.CHAT_AI) Icons.Filled.SmartToy else Icons.Outlined.SmartToy,
+                        null,
+                        tint = if (selectedTab == BottomTab.CHAT_AI) Color(0xFF667eea) else Color.Gray
+                    )
+                },
+                label = {
+                    Text(
+                        "AI",
+                        color = if (selectedTab == BottomTab.CHAT_AI) Color(0xFF667eea) else Color.Gray,
+                        fontWeight = if (selectedTab == BottomTab.CHAT_AI) FontWeight.Bold else FontWeight.Normal
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = Color(0xFF667eea).copy(alpha = 0.1f)
+                )
+            )
+        }
+    }
+
+    // Switch between root screens - NO animations, instant switch
+    when (selectedTab) {
+        /* =========================
+           ECONNECT ROOT - Has its own Scaffold
+           ========================= */
+        BottomTab.ECONNECT -> {
+            EconnectRoot(bottomBar = bottomBar)
+        }
+
+        /* =========================
+           HOME ROOT
+           ========================= */
+        BottomTab.HOME -> {
+            HomeRoot(
+                username = username,
+                email = email,
+                avatarIndex = avatarIndex,
+                onLogout = onLogout,
+                onVocabularyClick = onVocabularyClick,
+                onHomeworkClick = onHomeworkClick,
+                onSettingsClick = onSettingsClick,
+                onGameClick = onGameClick,
+                onLearnWordsClick = onLearnWordsClick,
+                bottomBar = bottomBar
+            )
+        }
+
+        /* =========================
+           AI CHAT ROOT
+           ========================= */
+        BottomTab.CHAT_AI -> {
+            AiRoot(bottomBar = bottomBar)
+        }
+    }
+}
+
+/* =========================
+   HOME ROOT SCREEN
+   ========================= */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeRoot(
+    username: String,
+    email: String,
+    avatarIndex: Int,
+    onLogout: () -> Unit,
+    onVocabularyClick: () -> Unit,
+    onHomeworkClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onGameClick: () -> Unit = {},
+    onLearnWordsClick: () -> Unit = {},
+    bottomBar: @Composable () -> Unit
+) {
+    val context = LocalContext.current
+    val viewModel: HomeViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        factory = HomeViewModel.Factory(context)
+    )
+
+    val dailyProgress by viewModel.dailyProgress.collectAsState()
+    val learningStats by viewModel.learningStats.collectAsState()
+
+    // State để điều hướng đến màn hình chi tiết
+    var showProgressDetail by remember { mutableStateOf(false) }
+
+    if (showProgressDetail) {
+        LearningProgressDetailScreen(
+            onBack = { showProgressDetail = false }
+        )
+    } else {
+        val backgroundColor = MaterialTheme.colorScheme.background
+        val surfaceColor = MaterialTheme.colorScheme.surface
+        val textColor = MaterialTheme.colorScheme.onBackground
+        val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+        Scaffold(
+            containerColor = backgroundColor,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            "English Learning",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = textColor
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = backgroundColor
+                    ),
+                    actions = {
+                        IconButton(
+                            onClick = {},
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(surfaceColor)
+                        ) {
+                            Icon(
+                                Icons.Outlined.Notifications,
+                                contentDescription = "Notifications",
+                                tint = Color(0xFF667eea)
+                            )
+                        }
+                    }
+                )
+            },
+            bottomBar = bottomBar
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                UserProfileCard(
+                    username = username,
+                    email = email,
+                    avatarIndex = avatarIndex,
+                    currentStreak = learningStats.currentStreak,
+                    onClick = onSettingsClick
+                )
+                Spacer(Modifier.height(20.dp))
+
+                DailyGoalSection(
+                    wordsLearned = dailyProgress.wordsLearned,
+                    dailyGoal = com.example.myapplication.data.repository.LearningProgressRepository.DAILY_WORDS_GOAL,
+                    currentStreak = learningStats.currentStreak,
+                    overallProgress = dailyProgress.overallProgress,
+                    onClick = { showProgressDetail = true }
+                )
+                Spacer(Modifier.height(20.dp))
+
+                LearningFeaturesSection(onVocabularyClick, onHomeworkClick, onGameClick, onLearnWordsClick)
+                Spacer(Modifier.height(20.dp))
+
+                StatisticsSection()
+                Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+/* =========================
+   ECONNECT ROOT SCREEN - Completely separate Scaffold
+   ========================= */
+@Composable
+fun EconnectRoot(bottomBar: @Composable () -> Unit) {
+    val econnectNavController = rememberNavController()
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = bottomBar
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) {
+            EconnectNavHost(
+                navController = econnectNavController,
+                onNavigateToNotifications = {
+                    econnectNavController.navigate(EconnectRoute.Notifications.route)
+                }
+            )
+        }
+    }
+}
+
+/* =========================
+   AI ROOT SCREEN
+   ========================= */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AiRoot(bottomBar: @Composable () -> Unit) {
+    val backgroundColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
-    val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     Scaffold(
         containerColor = backgroundColor,
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(PrimaryGradient),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("E", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                "English Learning",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                                color = textColor
-                            )
-                            Text(
-                                "Học mỗi ngày, tiến bộ mỗi ngày",
-                                fontSize = 12.sp,
-                                color = secondaryTextColor
-                            )
-                        }
-                    }
+                    Text(
+                        "AI Chat",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = textColor
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = backgroundColor
-                ),
-                actions = {
-                    IconButton(
-                        onClick = onSettingsClick,
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(surfaceColor)
-                    ) {
-                        Icon(
-                            Icons.Outlined.Settings,
-                            contentDescription = "Settings",
-                            tint = Color(0xFF667eea)
-                        )
-                    }
-                    IconButton(
-                        onClick = {},
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(surfaceColor)
-                    ) {
-                        Icon(
-                            Icons.Outlined.Notifications,
-                            contentDescription = "Notifications",
-                            tint = Color(0xFF667eea)
-                        )
-                    }
-                    IconButton(
-                        onClick = onLogout,
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(surfaceColor)
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Logout",
-                            tint = Color(0xFFf5576c)
-                        )
-                    }
-                }
+                )
             )
         },
-
-        /* =========================
-           BOTTOM NAV BAR
-           ========================= */
-        bottomBar = {
-            NavigationBar(
-                containerColor = surfaceColor,
-                tonalElevation = 8.dp,
-                modifier = Modifier
-                    .shadow(elevation = 16.dp, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-            ) {
-                NavigationBarItem(
-                    selected = selectedTab == BottomTab.CHAT_RANDOM,
-                    onClick = { selectedTab = BottomTab.CHAT_RANDOM },
-                    icon = {
-                        Icon(
-                            if (selectedTab == BottomTab.CHAT_RANDOM) Icons.Filled.People else Icons.Outlined.People,
-                            null,
-                            tint = if (selectedTab == BottomTab.CHAT_RANDOM) Color(0xFF667eea) else Color.Gray
-                        )
-                    },
-                    label = {
-                        Text(
-                            "Người lạ",
-                            color = if (selectedTab == BottomTab.CHAT_RANDOM) Color(0xFF667eea) else Color.Gray,
-                            fontWeight = if (selectedTab == BottomTab.CHAT_RANDOM) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        indicatorColor = Color(0xFF667eea).copy(alpha = 0.1f)
-                    )
-                )
-
-                NavigationBarItem(
-                    selected = selectedTab == BottomTab.HOME,
-                    onClick = { selectedTab = BottomTab.HOME },
-                    icon = {
-                        Box(
-                            modifier = Modifier
-                                .size(if (selectedTab == BottomTab.HOME) 52.dp else 40.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (selectedTab == BottomTab.HOME) PrimaryGradient
-                                    else Brush.linearGradient(listOf(Color.LightGray, Color.LightGray))
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Filled.Home,
-                                null,
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    },
-                    label = {
-                        Text(
-                            "Home",
-                            color = if (selectedTab == BottomTab.HOME) Color(0xFF667eea) else Color.Gray,
-                            fontWeight = if (selectedTab == BottomTab.HOME) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        indicatorColor = Color.Transparent
-                    )
-                )
-
-                NavigationBarItem(
-                    selected = selectedTab == BottomTab.CHAT_AI,
-                    onClick = { selectedTab = BottomTab.CHAT_AI },
-                    icon = {
-                        Icon(
-                            if (selectedTab == BottomTab.CHAT_AI) Icons.Filled.SmartToy else Icons.Outlined.SmartToy,
-                            null,
-                            tint = if (selectedTab == BottomTab.CHAT_AI) Color(0xFF667eea) else Color.Gray
-                        )
-                    },
-                    label = {
-                        Text(
-                            "AI",
-                            color = if (selectedTab == BottomTab.CHAT_AI) Color(0xFF667eea) else Color.Gray,
-                            fontWeight = if (selectedTab == BottomTab.CHAT_AI) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        indicatorColor = Color(0xFF667eea).copy(alpha = 0.1f)
-                    )
-                )
-            }
-        }
+        bottomBar = bottomBar
     ) { padding ->
-
-        when (selectedTab) {
-
-            /* =========================
-               HOME TAB
-               ========================= */
-            BottomTab.HOME -> {
-                Column(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    UserProfileCard(username, email, avatarIndex)
-                    Spacer(Modifier.height(20.dp))
-
-                    DailyGoalSection()
-                    Spacer(Modifier.height(20.dp))
-
-                    LearningFeaturesSection(onVocabularyClick, onHomeworkClick)
-                    Spacer(Modifier.height(20.dp))
-
-                    StatisticsSection()
-                    Spacer(Modifier.height(24.dp))
-                }
-            }
-
-            /* =========================
-               CHAT RANDOM TAB
-               ========================= */
-            BottomTab.CHAT_RANDOM -> {
-                Box(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.People,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp),
-                            tint = Color(0xFF667eea).copy(alpha = 0.5f)
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            "Chat với người lạ",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = textColor
-                        )
-                        Text(
-                            "Tính năng đang phát triển",
-                            color = secondaryTextColor
-                        )
-                    }
-                }
-            }
-
-            /* =========================
-               CHAT AI TAB
-               ========================= */
-            BottomTab.CHAT_AI -> {
-                Box(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.SmartToy,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp),
-                            tint = Color(0xFF667eea).copy(alpha = 0.5f)
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            "Chat với AI",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = textColor
-                        )
-                        Text(
-                            "Tính năng đang phát triển",
-                            color = secondaryTextColor
-                        )
-                    }
-                }
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.SmartToy,
+                    contentDescription = null,
+                    modifier = Modifier.size(80.dp),
+                    tint = Color(0xFF667eea).copy(alpha = 0.5f)
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Chat với AI",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
+                )
+                Text(
+                    "Tính năng đang phát triển",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -373,7 +429,17 @@ fun HomeScreenContent(
    SECTIONS
    ========================= */
 @Composable
-fun UserProfileCard(username: String, email: String, avatarIndex: Int = 0) {
+fun UserProfileCard(
+    username: String,
+    email: String,
+    avatarIndex: Int = 0,
+    currentStreak: Int = 0,
+    onClick: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    val userPreferences = remember { UserPreferences(context) }
+    val avatarUri = userPreferences.getAvatarUri()
+
     // Avatar options matching SettingsScreen
     val avatarIcons = listOf(
         Icons.Default.Person to Color(0xFF667eea),
@@ -396,7 +462,8 @@ fun UserProfileCard(username: String, email: String, avatarIndex: Int = 0) {
                 elevation = 12.dp,
                 shape = RoundedCornerShape(20.dp),
                 spotColor = Color(0xFF667eea).copy(alpha = 0.3f)
-            ),
+            )
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
@@ -407,7 +474,7 @@ fun UserProfileCard(username: String, email: String, avatarIndex: Int = 0) {
                 .padding(20.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Avatar
+                // Avatar with custom image support
                 Box(
                     modifier = Modifier
                         .size(60.dp)
@@ -415,12 +482,28 @@ fun UserProfileCard(username: String, email: String, avatarIndex: Int = 0) {
                         .background(currentAvatar.second),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        currentAvatar.first,
-                        contentDescription = "Avatar",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    )
+                    if (avatarUri != null) {
+                        // Show custom uploaded image
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(avatarUri)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Avatar",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        // Show icon avatar
+                        Icon(
+                            currentAvatar.first,
+                            contentDescription = "Avatar",
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                 }
 
                 Spacer(Modifier.width(16.dp))
@@ -462,7 +545,7 @@ fun UserProfileCard(username: String, email: String, avatarIndex: Int = 0) {
                             Text("🔥", fontSize = 16.sp)
                             Spacer(Modifier.width(4.dp))
                             Text(
-                                "7",
+                                "$currentStreak",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
@@ -481,10 +564,20 @@ fun UserProfileCard(username: String, email: String, avatarIndex: Int = 0) {
 }
 
 @Composable
-fun DailyGoalSection() {
+fun DailyGoalSection(
+    wordsLearned: Int = 0,
+    dailyGoal: Int = 10,
+    currentStreak: Int = 0,
+    overallProgress: Float = 0f,
+    onClick: () -> Unit = {}
+) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val textColor = MaterialTheme.colorScheme.onSurface
     val secondaryTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    val progress = if (dailyGoal > 0) (wordsLearned.toFloat() / dailyGoal).coerceIn(0f, 1f) else 0f
+    val percentage = (progress * 100).toInt()
+    val remaining = (dailyGoal - wordsLearned).coerceAtLeast(0)
 
     Card(
         modifier = Modifier
@@ -494,7 +587,8 @@ fun DailyGoalSection() {
                 elevation = 8.dp,
                 shape = RoundedCornerShape(16.dp),
                 spotColor = Color(0xFF11998e).copy(alpha = 0.2f)
-            ),
+            )
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = surfaceColor)
     ) {
@@ -528,7 +622,7 @@ fun DailyGoalSection() {
                             color = textColor
                         )
                         Text(
-                            "5/10 từ vựng",
+                            "$wordsLearned/$dailyGoal từ vựng",
                             color = secondaryTextColor,
                             fontSize = 12.sp
                         )
@@ -536,7 +630,7 @@ fun DailyGoalSection() {
                 }
 
                 Text(
-                    "50%",
+                    "$percentage%",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     color = Color(0xFF11998e)
@@ -555,7 +649,7 @@ fun DailyGoalSection() {
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.5f)
+                        .fillMaxWidth(progress)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(6.dp))
                         .background(AccentGradient)
@@ -568,7 +662,12 @@ fun DailyGoalSection() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Còn 5 từ nữa!", color = secondaryTextColor, fontSize = 12.sp)
+                if (remaining > 0) {
+                    Text("Còn $remaining từ nữa!", color = secondaryTextColor, fontSize = 12.sp)
+                } else {
+                    Text("🎉 Hoàn thành!", color = Color(0xFF11998e), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                }
+
                 Text("🎯 Cố lên!", color = Color(0xFF11998e), fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
         }
@@ -576,31 +675,21 @@ fun DailyGoalSection() {
 }
 
 @Composable
-fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -> Unit = {}) {
+fun LearningFeaturesSection(
+    onVocabularyClick: () -> Unit,
+    onHomeworkClick: () -> Unit = {},
+    onGameClick: () -> Unit = {},
+    onLearnWordsClick: () -> Unit = {}
+) {
     val textColor = MaterialTheme.colorScheme.onBackground
 
     Column(Modifier.padding(horizontal = 16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                "Bắt đầu học",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = textColor
-            )
-            TextButton(onClick = {}) {
-                Text("Xem tất cả", color = Color(0xFF667eea))
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = Color(0xFF667eea),
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        }
+        Text(
+            "Bắt đầu học",
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            color = textColor
+        )
         Spacer(Modifier.height(12.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -608,7 +697,7 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.School,
                 title = "Từ vựng",
-                description = "Học từ mới",
+                description = "Tra từ điển",
                 gradient = Brush.linearGradient(
                     colors = listOf(Color(0xFF4CAF50), Color(0xFF8BC34A))
                 ),
@@ -618,13 +707,14 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -
 
             ModernFeatureCard(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Default.Hearing,
-                title = "Nghe",
-                description = "Luyện phát âm",
+                icon = Icons.Default.SportsEsports,
+                title = "Trò chơi",
+                description = "Học qua game",
                 gradient = Brush.linearGradient(
                     colors = listOf(Color(0xFF2196F3), Color(0xFF03A9F4))
                 ),
-                iconBgColor = Color(0xFF2196F3)
+                iconBgColor = Color(0xFF2196F3),
+                onClick = onGameClick
             )
         }
 
@@ -645,13 +735,14 @@ fun LearningFeaturesSection(onVocabularyClick: () -> Unit, onHomeworkClick: () -
 
             ModernFeatureCard(
                 modifier = Modifier.weight(1f),
-                icon = Icons.AutoMirrored.Filled.LibraryBooks,
-                title = "Đọc",
-                description = "Đọc hiểu",
+                icon = Icons.Default.MenuBook,
+                title = "Học từ",
+                description = "Học 10 từ/ngày",
                 gradient = Brush.linearGradient(
                     colors = listOf(Color(0xFFFF9800), Color(0xFFFFC107))
                 ),
-                iconBgColor = Color(0xFFFF9800)
+                iconBgColor = Color(0xFFFF9800),
+                onClick = onLearnWordsClick
             )
         }
 
@@ -878,7 +969,8 @@ fun PreviewHome() {
             avatarIndex = 0,
             onLogout = {},
             onVocabularyClick = {},
-            onSettingsClick = {}
+            onSettingsClick = {},
+            onGameClick = {}
         )
     }
 }

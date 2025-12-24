@@ -2,8 +2,11 @@ package com.example.myapplication.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.example.myapplication.data.repository.DailyLearningRepository
+import com.example.myapplication.data.repository.LearnedWordsRepository
+import com.example.myapplication.data.repository.LearningProgressRepository
 
-class UserPreferences(context: Context) {
+class UserPreferences(private val context: Context) {
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
@@ -36,6 +39,15 @@ class UserPreferences(context: Context) {
             remove(KEY_EMAIL)
             remove(KEY_REMEMBER_ME)
             apply()
+        }
+
+        // Clear all learning data when logout
+        try {
+            LearnedWordsRepository.getInstance(context).clearLocalCache()
+            DailyLearningRepository.getInstance(context).clearLocal()
+            LearningProgressRepository.getInstance(context).clearLocal()
+        } catch (e: Exception) {
+            // Ignore errors during cleanup
         }
     }
 

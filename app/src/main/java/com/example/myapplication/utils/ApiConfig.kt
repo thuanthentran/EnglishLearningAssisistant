@@ -19,6 +19,11 @@ object ApiConfig {
     // API Endpoints
     const val GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/"
 
+    // Azure OpenAI Configuration
+
+    const val AZURE_OPENAI_DEPLOYMENT = "o4-mini"
+    const val AZURE_OPENAI_API_VERSION = "2024-12-01-preview"
+
     // Timeout configurations
     const val API_TIMEOUT_MS = 60000 // 60 seconds
     const val API_RETRY_COUNT = 3

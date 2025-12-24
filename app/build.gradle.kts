@@ -4,11 +4,27 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
 }
-// Read GEMINI_API_KEY from local.properties without relying on java.util.Properties
+// Read API keys from local.properties without relying on java.util.Properties
 val geminiSanitized: String = run {
     val lp = rootProject.file("local.properties")
     if (!lp.exists()) return@run ""
     val line = lp.readLines().firstOrNull { it.trim().startsWith("GEMINI_API_KEY=") }
+    val raw = line?.substringAfter("=")?.trim() ?: ""
+    raw.removeSurrounding("\"").removeSurrounding("'")
+}
+
+val azureApiKeySanitized: String = run {
+    val lp = rootProject.file("local.properties")
+    if (!lp.exists()) return@run ""
+    val line = lp.readLines().firstOrNull { it.trim().startsWith("AZURE_OPENAI_API_KEY=") }
+    val raw = line?.substringAfter("=")?.trim() ?: ""
+    raw.removeSurrounding("\"").removeSurrounding("'")
+}
+
+val azureEndpointSanitized: String = run {
+    val lp = rootProject.file("local.properties")
+    if (!lp.exists()) return@run ""
+    val line = lp.readLines().firstOrNull { it.trim().startsWith("AZURE_OPENAI_ENDPOINT=") }
     val raw = line?.substringAfter("=")?.trim() ?: ""
     raw.removeSurrounding("\"").removeSurrounding("'")
 }
@@ -27,6 +43,17 @@ android {
             "String",
             "GEMINI_API_KEY",
             "\"$geminiSanitized\""
+        )
+        // Add Azure OpenAI config from local.properties
+        buildConfigField(
+            "String",
+            "AZURE_OPENAI_API_KEY",
+            "\"$azureApiKeySanitized\""
+        )
+        buildConfigField(
+            "String",
+            "AZURE_OPENAI_ENDPOINT",
+            "\"$azureEndpointSanitized\""
         )
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -111,6 +138,10 @@ dependencies {
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+
+    // Navigation Compose
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 
     // ML Kit Text Recognition
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")

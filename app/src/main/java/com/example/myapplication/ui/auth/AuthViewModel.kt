@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.DatabaseHelper
 import com.example.myapplication.data.UserPreferences
+import com.example.myapplication.data.repository.LearnedWordsRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
@@ -30,6 +31,7 @@ class AuthViewModel(
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val dbHelper = DatabaseHelper(context)
     private val userPreferences = UserPreferences(context)
+    private val learnedWordsRepository = LearnedWordsRepository.getInstance(context)
 
     private val _loginState = MutableStateFlow(AuthState())
     val loginState: StateFlow<AuthState> = _loginState.asStateFlow()
@@ -63,6 +65,9 @@ class AuthViewModel(
 
                     // Lưu session
                     userPreferences.saveUserSession(username, email, rememberMe)
+
+                    // Sync learned words từ cloud
+                    learnedWordsRepository.syncFromCloud()
 
                     _loginState.value = AuthState(isSuccess = true)
                 } else {
@@ -139,6 +144,7 @@ class AuthViewModel(
     fun logout() {
         firebaseAuth.signOut()
         userPreferences.clearUserSession()
+        learnedWordsRepository.clearLocalCache()
     }
 
     /**
