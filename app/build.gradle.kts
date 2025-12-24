@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
 }
-// Read GEMINI_API_KEY from local.properties without relying on java.util.Properties
+// Read API keys from local.properties without relying on java.util.Properties
 val geminiSanitized: String = run {
     val lp = rootProject.file("local.properties")
     if (!lp.exists()) return@run ""
@@ -170,6 +170,10 @@ dependencies {
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+
+    // Navigation Compose
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 
     // ML Kit Text Recognition
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")

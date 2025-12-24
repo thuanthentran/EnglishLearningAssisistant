@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -70,7 +71,8 @@ val avatarOptions = listOf(
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    onDarkModeChanged: (Boolean) -> Unit
+    onDarkModeChanged: (Boolean) -> Unit,
+    onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val userPreferences = remember { UserPreferences(context) }
@@ -230,7 +232,7 @@ fun SettingsScreen(
                             modifier = Modifier.wrapContentSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            // Avatar
+                            // Avatar - clickable directly
                             Box(
                                 modifier = Modifier
                                     .size(120.dp)
@@ -269,26 +271,6 @@ fun SettingsScreen(
                                         )
                                     }
                                 }
-                            }
-
-                            // Edit button - positioned at bottom end of avatar
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .offset(x = (-4).dp, y = (-4).dp)
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF667eea))
-                                    .border(3.dp, Color.White, CircleShape)
-                                    .clickable { showAvatarDialog = true },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.CameraAlt,
-                                    contentDescription = "Đổi avatar",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = Color.White
-                                )
                             }
                         }
 
@@ -331,11 +313,11 @@ fun SettingsScreen(
 
                         Spacer(Modifier.height(20.dp))
 
-                        // Quick action buttons - evenly distributed
+                        // Quick action buttons - only non-duplicate actions
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
+                                .padding(horizontal = 24.dp),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             QuickActionButton(
@@ -352,14 +334,6 @@ fun SettingsScreen(
                                 onClick = { showAvatarDialog = true },
                                 backgroundColor = if (isDarkMode) Color(0xFF2D2D2D) else Color(0xFFF0F0F0),
                                 iconColor = Color(0xFF11998e),
-                                textColor = textColor
-                            )
-                            QuickActionButton(
-                                icon = Icons.Default.Lock,
-                                label = "Đổi mật khẩu",
-                                onClick = { showChangePasswordDialog = true },
-                                backgroundColor = if (isDarkMode) Color(0xFF2D2D2D) else Color(0xFFF0F0F0),
-                                iconColor = Color(0xFFE57373),
                                 textColor = textColor
                             )
                         }
@@ -416,8 +390,7 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-
-            // Security Section
+            // Security Section - Đổi mật khẩu và Quên mật khẩu
             SectionTitle(
                 title = "Bảo mật",
                 icon = Icons.Default.Security,
@@ -545,6 +518,40 @@ fun SettingsScreen(
                                 modifier = Modifier.size(24.dp)
                             )
                         }
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // Logout Section
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(6.dp, RoundedCornerShape(20.dp))
+                    .clickable { onLogout() },
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = cardColor)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ExitToApp,
+                        contentDescription = null,
+                        tint = Color(0xFFf5576c),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "Đăng xuất",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color(0xFFf5576c)
                     )
                 }
             }
