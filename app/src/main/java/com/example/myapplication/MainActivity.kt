@@ -1,4 +1,4 @@
-package com.example.myapplication.utils
+package com.example.myapplication
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -60,7 +60,7 @@ enum class Screen {
     HOMEWORK_SOLUTION,
     SETTINGS,
     GAME,
-    LEARN_WORDS
+    LEARN_WORDS,
     WRITING_PRACTICE,
     IMAGE_LEARNING,
     SPEAKING_PRACTICE
@@ -136,6 +136,7 @@ fun MainApp(
                         },
                         onLearnWordsClick = {
                             currentScreen = Screen.LEARN_WORDS
+                        },
                         onWritingPracticeClick = {
                             currentScreen = Screen.WRITING_PRACTICE
                         },
