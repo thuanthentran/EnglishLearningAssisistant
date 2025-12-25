@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -61,7 +62,7 @@ fun LearningProgressDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Tiến trình học tập",
+                        stringResource(com.example.myapplication.R.string.learning_progress),
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
                         color = textColor
@@ -106,10 +107,6 @@ fun LearningProgressDetailScreen(
                 StatsOverviewSection(learningStats)
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Biểu đồ tuần
-                WeeklyChartSection(weeklyProgress, dailyProgress)
-                Spacer(modifier = Modifier.height(20.dp))
-
                 // Chi tiết từng mục
                 DetailedProgressSection(dailyProgress, learningStats)
                 Spacer(modifier = Modifier.height(24.dp))
@@ -140,7 +137,7 @@ private fun TodayProgressSection(dailyProgress: DailyProgress) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Tiến trình hôm nay",
+                    stringResource(com.example.myapplication.R.string.today_s_progress),
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     color = textColor
@@ -158,7 +155,7 @@ private fun TodayProgressSection(dailyProgress: DailyProgress) {
             // Progress items
             ProgressItem(
                 icon = Icons.Default.School,
-                label = "Từ vựng mới",
+                label = stringResource(com.example.myapplication.R.string.new_vocabulary),
                 current = dailyProgress.wordsLearned,
                 goal = LearningProgressRepository.DAILY_WORDS_GOAL,
                 progress = dailyProgress.wordsProgress,
@@ -169,7 +166,7 @@ private fun TodayProgressSection(dailyProgress: DailyProgress) {
 
             ProgressItem(
                 icon = Icons.Default.Refresh,
-                label = "Ôn tập",
+                label = stringResource(com.example.myapplication.R.string.review_words),
                 current = dailyProgress.wordsReviewed,
                 goal = LearningProgressRepository.DAILY_REVIEW_GOAL,
                 progress = dailyProgress.reviewProgress,
@@ -180,7 +177,7 @@ private fun TodayProgressSection(dailyProgress: DailyProgress) {
 
             ProgressItem(
                 icon = Icons.Default.Quiz,
-                label = "Bài quiz",
+                label = stringResource(com.example.myapplication.R.string.quiz_completed),
                 current = dailyProgress.quizCompleted,
                 goal = LearningProgressRepository.DAILY_QUIZ_GOAL,
                 progress = dailyProgress.quizProgress,
@@ -273,7 +270,7 @@ private fun StatsOverviewSection(stats: LearningStats) {
             modifier = Modifier.padding(20.dp)
         ) {
             Text(
-                "Thống kê tổng hợp",
+                stringResource(com.example.myapplication.R.string.stats_overview),
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 color = MaterialTheme.colorScheme.onSurface
@@ -288,7 +285,7 @@ private fun StatsOverviewSection(stats: LearningStats) {
                 StatBox(
                     icon = Icons.Default.LocalFireDepartment,
                     value = "${stats.currentStreak}",
-                    label = "Streak",
+                    label = stringResource(com.example.myapplication.R.string.streak),
                     color = Color(0xFFFF6B6B),
                     gradient = Brush.linearGradient(
                         colors = listOf(Color(0xFFFF6B6B), Color(0xFFFFAA00))
@@ -298,7 +295,7 @@ private fun StatsOverviewSection(stats: LearningStats) {
                 StatBox(
                     icon = Icons.Default.MenuBook,
                     value = "${stats.totalWordsLearned}",
-                    label = "Từ đã học",
+                    label = stringResource(com.example.myapplication.R.string.words_learned_label),
                     color = Color(0xFF11998e),
                     gradient = Brush.linearGradient(
                         colors = listOf(Color(0xFF11998e), Color(0xFF38ef7d))
@@ -308,7 +305,7 @@ private fun StatsOverviewSection(stats: LearningStats) {
                 StatBox(
                     icon = Icons.Default.CheckCircle,
                     value = "${(stats.overallAccuracy * 100).toInt()}%",
-                    label = "Độ chính xác",
+                    label = stringResource(com.example.myapplication.R.string.accuracy_label),
                     color = Color(0xFF667eea),
                     gradient = Brush.linearGradient(
                         colors = listOf(Color(0xFF667eea), Color(0xFF764ba2))
@@ -363,103 +360,6 @@ private fun StatBox(
 }
 
 @Composable
-private fun WeeklyChartSection(weeklyProgress: List<DailyProgress>, todayProgress: DailyProgress) {
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    val dayFormat = SimpleDateFormat("EEE", Locale.forLanguageTag("vi"))
-    val today = dateFormat.format(Date())
-
-    // Tạo dữ liệu cho 7 ngày gần nhất
-    val last7Days = (0..6).map { daysAgo ->
-        Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_YEAR, -6 + daysAgo)
-        }.time
-    }
-
-    val chartData = last7Days.map { date ->
-        val dateStr = dateFormat.format(date)
-        val dayLabel = dayFormat.format(date).uppercase()
-
-        // Nếu là hôm nay, dùng todayProgress thay vì từ weeklyProgress
-        val progress = if (dateStr == today) {
-            todayProgress
-        } else {
-            weeklyProgress.find { it.date == dateStr }
-        }
-
-        Triple(dayLabel, progress?.overallProgress ?: 0f, progress?.wordsLearned ?: 0)
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .shadow(8.dp, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = surfaceColor)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp)
-        ) {
-            Text(
-                "Tiến trình 7 ngày qua",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                chartData.forEach { (day, progress, words) ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            "$words",
-                            fontSize = 10.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .width(24.dp)
-                                .height((80 * progress.coerceAtLeast(0.05f)).dp)
-                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                                .background(
-                                    if (progress > 0) Brush.verticalGradient(
-                                        colors = listOf(Color(0xFF11998e), Color(0xFF38ef7d))
-                                    )
-                                    else Brush.verticalGradient(
-                                        colors = listOf(Color.Gray.copy(alpha = 0.3f), Color.Gray.copy(alpha = 0.3f))
-                                    )
-                                )
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            day,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun DetailedProgressSection(dailyProgress: DailyProgress, stats: LearningStats) {
     val surfaceColor = MaterialTheme.colorScheme.surface
 
@@ -475,7 +375,7 @@ private fun DetailedProgressSection(dailyProgress: DailyProgress, stats: Learnin
             modifier = Modifier.padding(20.dp)
         ) {
             Text(
-                "Chi tiết thống kê",
+                stringResource(com.example.myapplication.R.string.detailed_stats),
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 color = MaterialTheme.colorScheme.onSurface
@@ -484,20 +384,20 @@ private fun DetailedProgressSection(dailyProgress: DailyProgress, stats: Learnin
             Spacer(modifier = Modifier.height(20.dp))
 
             // Hôm nay
-            DetailRow("Từ học hôm nay", "${dailyProgress.wordsLearned} từ")
-            DetailRow("Từ ôn hôm nay", "${dailyProgress.wordsReviewed} từ")
-            DetailRow("Quiz hôm nay", "${dailyProgress.quizCompleted} câu")
-            DetailRow("Độ chính xác hôm nay", "${(dailyProgress.quizAccuracy * 100).toInt()}%")
+            DetailRow(stringResource(com.example.myapplication.R.string.words_learned_today), "${dailyProgress.wordsLearned} từ")
+            DetailRow(stringResource(com.example.myapplication.R.string.words_reviewed_today), "${dailyProgress.wordsReviewed} từ")
+            DetailRow(stringResource(com.example.myapplication.R.string.quiz_completed_today), "${dailyProgress.quizCompleted} câu")
+            DetailRow(stringResource(com.example.myapplication.R.string.accuracy_today), "${(dailyProgress.quizAccuracy * 100).toInt()}%")
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
             // Tổng cộng
-            DetailRow("Tổng từ đã học", "${stats.totalWordsLearned} từ")
-            DetailRow("Tổng từ đã ôn", "${stats.totalWordsReviewed} từ")
-            DetailRow("Tổng câu quiz", "${stats.totalQuizCompleted} câu")
-            DetailRow("Độ chính xác tổng", "${(stats.overallAccuracy * 100).toInt()}%")
-            DetailRow("Streak hiện tại", "${stats.currentStreak} ngày")
-            DetailRow("Streak dài nhất", "${stats.longestStreak} ngày")
+            DetailRow(stringResource(com.example.myapplication.R.string.total_words_learned), "${stats.totalWordsLearned} từ")
+            DetailRow(stringResource(com.example.myapplication.R.string.total_words_reviewed), "${stats.totalWordsReviewed} từ")
+            DetailRow(stringResource(com.example.myapplication.R.string.total_quiz_completed), "${stats.totalQuizCompleted} câu")
+            DetailRow(stringResource(com.example.myapplication.R.string.overall_accuracy), "${(stats.overallAccuracy * 100).toInt()}%")
+            DetailRow(stringResource(com.example.myapplication.R.string.current_streak_label), "${stats.currentStreak} ngày")
+            DetailRow(stringResource(com.example.myapplication.R.string.longest_streak), "${stats.longestStreak} ngày")
         }
     }
 }
@@ -521,4 +421,3 @@ private fun DetailRow(label: String, value: String) {
         )
     }
 }
-
